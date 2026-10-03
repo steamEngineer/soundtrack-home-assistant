@@ -82,9 +82,31 @@ Pause, skip, and volume also work as the normal media player actions (`media_pla
 
 ## Development
 
+Home Assistant 2026.4 and newer needs Python 3.14.2 or newer. Tests run inside a slim Home Assistant 2026.9 runtime built from the published wheel. Core's `tests/common.py` is not in that wheel, and `pytest-homeassistant-custom-component` still pins Home Assistant 2025.1, so the fixture in `tests/hass_fixture.py` follows the 2026.9.4 test helper instead.
+
 ```bash
-pip install -r requirements-dev.txt
-pytest
+uv venv --python 3.14 .venv
+uv pip install -r requirements-dev.txt
+# The browser UI needs the frontend build that matches this Home Assistant release.
+uv pip install home-assistant-frontend==20260826.7
+.venv/bin/pytest
 ```
 
-The tests cover the client: login, refresh, a rejected refresh, playlist parsing, and playback commands. They do not boot Home Assistant.
+`pytest` covers the GraphQL client and, in Home Assistant itself, the config flow, reauth, zone setup, playback, favorites, browse, and search.
+
+To click through the UI, run the local Soundtrack stand-in and a Home Assistant pointed at it. `SOUNDTRACK_API_URL` is optional. Leave it unset and the integration uses `https://api.soundtrackyourbrand.com/v2`.
+
+```bash
+mkdir -p config/custom_components
+ln -sfn "$PWD/custom_components/soundtrack" config/custom_components/soundtrack
+cp dev/configuration.yaml config/configuration.yaml
+SOUNDTRACK_API_URL=http://127.0.0.1:43124/ .venv/bin/python dev/mock_soundtrack.py
+```
+
+In a second shell:
+
+```bash
+SOUNDTRACK_API_URL=http://127.0.0.1:43124/ .venv/bin/python -m homeassistant --config config
+```
+
+Open http://127.0.0.1:43123. On the stand-in, sign in as `ada@example.com` with password `soundtrack`. That account has one sound zone, Front Bar, playing Nightshift. The password is only valid for the stand-in.

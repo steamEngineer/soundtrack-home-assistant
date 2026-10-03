@@ -1,0 +1,20 @@
+# Lab config for the Soundtrack integration. Not a production Home Assistant config.
+homeassistant:
+  name: Soundtrack Lab
+  latitude: 32.87336
+  longitude: -117.22743
+  elevation: 0
+  unit_system: metric
+  time_zone: UTC
+  country: US
+
+frontend:
+
+http:
+  server_port: 43123
+  use_x_frame_options: false
+
+logger:
+  default: warning
+  logs:
+    custom_components.soundtrack: info

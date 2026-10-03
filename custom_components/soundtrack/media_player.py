@@ -62,7 +62,6 @@ _STATE = {
     "paused": MediaPlayerState.PAUSED,
     "idle": MediaPlayerState.IDLE,
     "off": MediaPlayerState.OFF,
-    "unavailable": MediaPlayerState.UNAVAILABLE,
 }
 
 
@@ -123,20 +122,28 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
 
     @property
     def available(self) -> bool:
-        return self.coordinator.last_update_success and self._zone is not None
+        zone = self._zone
+        if not self.coordinator.last_update_success or zone is None:
+            return False
+        # Offline is not a media-player state. Home Assistant shows the entity
+        # as unavailable when this returns false.
+        return playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online) != "unavailable"
 
     @property
     def device_info(self) -> DeviceInfo:
         zone = self._zone
         location = zone.location_name if zone and zone.location_name else None
         name = zone.name if zone else self._zone_id
-        return DeviceInfo(
+        info = DeviceInfo(
             identifiers={(DOMAIN, self._zone_id)},
             name=f"{location} {name}" if location else name,
             manufacturer="Soundtrack",
             model="Sound zone",
             suggested_area=location,
         )
+        if self.coordinator.config_entry is not None:
+            info["via_device"] = (DOMAIN, self.coordinator.config_entry.entry_id)
+        return info
 
     @property
     def state(self) -> MediaPlayerState | None:
@@ -144,6 +151,8 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
         if zone is None:
             return None
         mapped = playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online)
+        if mapped == "unavailable":
+            return MediaPlayerState.OFF
         return _STATE[mapped]
 
     @property
@@ -399,7 +408,7 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
             await coro
         except SoundtrackError as err:
             self._raise_command_error(err)
-        await self.coordinator.async_request_refresh()
+        await self.coordinator.async_refresh()
 
     def _raise_command_error(self, err: SoundtrackError) -> None:
         if isinstance(err, SoundtrackAuthError):

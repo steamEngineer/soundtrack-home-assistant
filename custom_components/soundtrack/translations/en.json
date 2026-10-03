@@ -1,0 +1,68 @@
+{
+  "title": "Soundtrack",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sign in to Soundtrack",
+        "description": "Use the Soundtrack account that should control these sound zones. The password is used once and is not saved. Home Assistant refreshes the session until Soundtrack revokes it.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        },
+        "data_description": {
+          "email": "The email you use at soundtrackyourbrand.com.",
+          "password": "Used once to sign in. It is not stored."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect Soundtrack",
+        "description": "Soundtrack ended the saved session for {email}. Enter the password to sign in again.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Soundtrack rejected that email or password.",
+      "cannot_connect": "Could not reach Soundtrack. Check the network and try again.",
+      "unknown": "Something unexpected went wrong."
+    },
+    "abort": {
+      "already_configured": "This Soundtrack account is already configured.",
+      "reauth_successful": "Reconnected to Soundtrack.",
+      "wrong_account": "That password belongs to a different Soundtrack user."
+    }
+  },
+  "services": {
+    "play_playlist": {
+      "name": "Play playlist",
+      "description": "Start a playlist on a sound zone now.",
+      "fields": {
+        "playlist_id": {
+          "name": "Playlist ID",
+          "description": "Soundtrack playlist id, from the media browser or the Soundtrack app."
+        }
+      }
+    },
+    "favorite_playlist": {
+      "name": "Favorite playlist",
+      "description": "Save a playlist to this sound zone's account. It then shows up under Favorites and in the source list.",
+      "fields": {
+        "playlist_id": {
+          "name": "Playlist ID",
+          "description": "Soundtrack playlist id to add to the account music library."
+        }
+      }
+    },
+    "unfavorite_playlist": {
+      "name": "Unfavorite playlist",
+      "description": "Remove a playlist from this sound zone's account music library.",
+      "fields": {
+        "playlist_id": {
+          "name": "Playlist ID",
+          "description": "Soundtrack playlist id to remove from the account music library."
+        }
+      }
+    }
+  }
+}

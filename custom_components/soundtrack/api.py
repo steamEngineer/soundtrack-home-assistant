@@ -18,11 +18,11 @@ from typing import Any
 import aiohttp
 
 from .const import (
-    API_URL,
     MAX_LIBRARY_PAGES,
     PAGE_SIZE,
     TOKEN_REFRESH_MARGIN_SECONDS,
     VOLUME_MAX,
+    api_url,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -621,7 +621,7 @@ async def async_graphql(
     variables: dict[str, Any] | None = None,
     *,
     token: str | None = None,
-    base_url: str = API_URL,
+    base_url: str | None = None,
 ) -> dict[str, Any]:
     """POST one GraphQL operation and return its data."""
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -629,7 +629,7 @@ async def async_graphql(
         headers["Authorization"] = f"Bearer {token}"
     try:
         async with session.post(
-            base_url,
+            base_url or api_url(),
             json={"query": query, "variables": variables or {}},
             headers=headers,
             timeout=aiohttp.ClientTimeout(total=30),
@@ -665,7 +665,7 @@ async def async_login(
     email: str,
     password: str,
     *,
-    base_url: str = API_URL,
+    base_url: str | None = None,
 ) -> Tokens:
     """Sign in. Raises SoundtrackAuthError when the credentials are rejected."""
     try:
@@ -702,12 +702,12 @@ class SoundtrackClient:
         tokens: Tokens,
         *,
         on_tokens: TokenListener | None = None,
-        base_url: str = API_URL,
+        base_url: str | None = None,
     ) -> None:
         self._session = session
         self.tokens = tokens
         self._on_tokens = on_tokens
-        self._base_url = base_url
+        self._base_url = base_url or api_url()
         # ponytail: one lock serializes every call so a refresh cannot race.
         # Upgrade path: lock only the refresh if command latency starts to matter.
         self._lock = asyncio.Lock()

@@ -1,8 +1,19 @@
 """Constants for the Soundtrack integration."""
 
+import os
+
 DOMAIN = "soundtrack"
 
 API_URL = "https://api.soundtrackyourbrand.com/v2"
+
+
+def api_url() -> str:
+    """GraphQL endpoint.
+
+    SOUNDTRACK_API_URL points a development Home Assistant at a local
+    stand-in. The installed integration keeps using the production API.
+    """
+    return os.environ.get("SOUNDTRACK_API_URL") or API_URL
 
 CONF_EMAIL = "email"
 CONF_ACCESS_TOKEN = "access_token"

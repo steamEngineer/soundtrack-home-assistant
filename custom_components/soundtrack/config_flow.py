@@ -103,16 +103,14 @@ class SoundtrackConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected Soundtrack reauth error")
                 errors["base"] = "unknown"
             else:
-                await self.async_set_unique_id(tokens.user_id or entry.unique_id or email.lower())
+                user_id = tokens.user_id or entry.unique_id or email.lower()
+                tokens.user_id = user_id
+                await self.async_set_unique_id(user_id)
                 self._abort_if_unique_id_mismatch(reason="wrong_account")
-                if not tokens.user_id:
-                    tokens.user_id = entry.unique_id or email.lower()
-                self.hass.config_entries.async_update_entry(
+                return self.async_update_reload_and_abort(
                     entry,
                     data=_entry_data(email, tokens),
                 )
-                await self.hass.config_entries.async_reload(entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
         return self.async_show_form(
             step_id="reauth_confirm",
             data_schema=_REAUTH_SCHEMA,

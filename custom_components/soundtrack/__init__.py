@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import SoundtrackClient, Tokens
 from .const import (
@@ -12,20 +16,13 @@ from .const import (
     CONF_EXPIRES_AT,
     CONF_REFRESH_TOKEN,
     CONF_USER_ID,
+    DOMAIN,
 )
-
-if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
-
-    from .coordinator import SoundtrackConfigEntry
+from .coordinator import SoundtrackConfigEntry, SoundtrackCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-
-def _platforms():
-    from homeassistant.const import Platform
-
-    return [Platform.MEDIA_PLAYER]
+_PLATFORMS = [Platform.MEDIA_PLAYER]
 
 
 def _tokens(entry: SoundtrackConfigEntry) -> Tokens:
@@ -54,10 +51,6 @@ async def _persist(hass: HomeAssistant, entry: SoundtrackConfigEntry, tokens: To
 
 async def async_setup_entry(hass: HomeAssistant, entry: SoundtrackConfigEntry) -> bool:
     """Set up Soundtrack from a config entry."""
-    from homeassistant.helpers.aiohttp_client import async_get_clientsession
-
-    from .coordinator import SoundtrackCoordinator
-
     session = async_get_clientsession(hass)
 
     async def _on_tokens(tokens: Tokens) -> None:
@@ -67,11 +60,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: SoundtrackConfigEntry) -
     coordinator = SoundtrackCoordinator(hass, client, entry)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
-    await hass.config_entries.async_forward_entry_setups(entry, _platforms())
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, entry.entry_id)},
+        manufacturer="Soundtrack",
+        model="Account",
+        name=entry.title,
+        entry_type=dr.DeviceEntryType.SERVICE,
+    )
+    await hass.config_entries.async_forward_entry_setups(entry, _PLATFORMS)
     _LOGGER.debug("Soundtrack ready with %s sound zones", len(coordinator.data.zones))
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: SoundtrackConfigEntry) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, _platforms())
+    return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)

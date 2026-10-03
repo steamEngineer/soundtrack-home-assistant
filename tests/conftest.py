@@ -1,0 +1,43 @@
+"""Home Assistant fixtures for the Soundtrack integration."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncGenerator
+import os
+import shutil
+import tempfile
+
+import pytest
+
+from dev.mock_soundtrack import SoundtrackMock
+from tests.hass_fixture import async_test_home_assistant
+
+from homeassistant.core import HomeAssistant
+
+
+@pytest.fixture
+async def mock_api() -> AsyncGenerator[SoundtrackMock]:
+    """A Soundtrack API on a random port, selected via SOUNDTRACK_API_URL."""
+    server = SoundtrackMock()
+    previous = os.environ.get("SOUNDTRACK_API_URL")
+    await server.start()
+    os.environ["SOUNDTRACK_API_URL"] = server.url
+    try:
+        yield server
+    finally:
+        if previous is None:
+            os.environ.pop("SOUNDTRACK_API_URL", None)
+        else:
+            os.environ["SOUNDTRACK_API_URL"] = previous
+        await server.stop()
+
+
+@pytest.fixture
+async def hass() -> AsyncGenerator[HomeAssistant]:
+    """Home Assistant 2026.9 with this repo's custom component on the loader path."""
+    config_dir = tempfile.mkdtemp()
+    try:
+        async for hass in async_test_home_assistant(config_dir):
+            yield hass
+    finally:
+        shutil.rmtree(config_dir, ignore_errors=True)

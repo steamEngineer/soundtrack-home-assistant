@@ -70,6 +70,9 @@ def test_placeholder_art_is_resized() -> None:
     assert _image_from_display({"image": {"placeholder": "https://cdn.example/%w/%h"}}) == (
         "https://cdn.example/300/300"
     )
+    assert _image_from_display(
+        {"image": {"sizes": {"thumbnail": "https://cdn.example/%w/%h/jazz"}}}
+    ) == "https://cdn.example/300/300/jazz"
 
 
 def test_playlist_sources_disambiguate_names() -> None:
@@ -175,6 +178,74 @@ def test_parse_snapshot_reads_zone_and_flags_truncation() -> None:
     assert zone.track.image_url == "https://cdn.example/art.jpg"
     assert snapshot.accounts["acc"].library_cursor == "cursor-1"
     assert track_position(zone.track.started_at, snapshot.fetched_at, zone.track.duration, playing=True) == 10
+
+
+def test_parse_snapshot_prefers_measured_progress_and_the_newer_track() -> None:
+    snapshot = parse_snapshot(
+        {
+            "me": {
+                "__typename": "User",
+                "accounts": {
+                    "edges": [
+                        {
+                            "node": {
+                                "id": "acc",
+                                "businessName": "Ada's Cafe",
+                                "locations": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "id": "loc",
+                                                "name": "Front",
+                                                "soundZones": {
+                                                    "edges": [
+                                                        {
+                                                            "node": {
+                                                                "id": "zone",
+                                                                "name": "Bar",
+                                                                "online": True,
+                                                                "isPaired": True,
+                                                                "playback": {
+                                                                    "state": "paused",
+                                                                    "progress": {
+                                                                        "progressMs": 12500,
+                                                                        "updatedAt": "2026-10-03T03:02:12Z",
+                                                                    },
+                                                                    "current": {
+                                                                        "start": "2026-10-03T03:02:00Z",
+                                                                        "playable": {
+                                                                            "__typename": "Track",
+                                                                            "title": "Easy",
+                                                                            "artists": [{"name": "Commodores"}],
+                                                                            "durationMs": 180000,
+                                                                        },
+                                                                    },
+                                                                },
+                                                                "nowPlaying": {
+                                                                    "startedAt": "2026-10-03T03:00:00Z",
+                                                                    "track": {"title": "Nightshift"},
+                                                                },
+                                                            }
+                                                        }
+                                                    ]
+                                                },
+                                            }
+                                        }
+                                    ]
+                                },
+                            }
+                        }
+                    ]
+                },
+            }
+        }
+    )
+    track = snapshot.zones["zone"].track
+    assert track is not None
+    assert track.title == "Easy"
+    assert track.artists == "Commodores"
+    assert track.progress == 12.5
+    assert track.progress_at == datetime(2026, 10, 3, 3, 2, 12, tzinfo=timezone.utc)
 
 
 def test_parse_snapshot_rejects_api_client_session() -> None:
@@ -372,6 +443,87 @@ async def test_proactive_refresh_uses_the_new_token(graphql, session) -> None:
     assert await client.execute("query { ok }") == {"ok": True}
     assert "refreshLogin" in graphql["requests"][0]["query"]
     assert len(graphql["requests"]) == 2
+
+
+async def test_category_page_reads_editorial_playlists(graphql, session) -> None:
+    async def respond(body, request):
+        if "browseCategories" in body["query"]:
+            return web.json_response(
+                {
+                    "data": {
+                        "browseCategories": {
+                            "edges": [
+                                {
+                                    "node": {
+                                        "id": "electronic",
+                                        "name": "Electronic",
+                                        "image": {"large": {"url": "https://cdn.example/%w/%h/electronic"}},
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            )
+        assert body["variables"] == {"id": "soundtrack:browse:electronic"}
+        assert "editorialBrowse" in body["query"]
+        return web.json_response(
+            {
+                "data": {
+                    "editorialBrowse": {
+                        "title": "Electronic",
+                        "sections": {
+                            "edges": [
+                                {
+                                    "node": {
+                                        "items": {
+                                            "edges": [
+                                                {"node": {"__typename": "Playlist", "id": "pl1", "name": "House"}},
+                                                {"node": {"__typename": "Playlist", "id": "pl1", "name": "House"}},
+                                                {
+                                                    "node": {
+                                                        "__typename": "BrowseCategory",
+                                                        "id": "lounge",
+                                                        "name": "Lounge",
+                                                    }
+                                                },
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                    }
+                }
+            }
+        )
+
+    graphql["respond"] = respond
+    client = _client(session, graphql)
+    categories = await client.async_categories()
+    assert categories[0].image_url == "https://cdn.example/300/300/electronic"
+    title, playlists, related = await client.async_category_page("electronic")
+    assert title == "Electronic"
+    assert [(playlist.id, playlist.name) for playlist in playlists] == [("pl1", "House")]
+    assert [(category.id, category.name) for category in related] == [("lounge", "Lounge")]
+
+
+async def test_play_playlist_retries_a_rejected_start(graphql, session) -> None:
+    plays = 0
+
+    async def respond(body, request):
+        nonlocal plays
+        if "play(" in body["query"]:
+            plays += 1
+            if plays == 1:
+                return web.json_response({"errors": [{"message": "Sound zone is not ready"}]})
+        return web.json_response({"data": {"ok": True}})
+
+    graphql["respond"] = respond
+    client = _client(session, graphql)
+    await client.async_play_playlist("zone-1", "playlist-9")
+    assert plays == 2
+    assert "soundZoneAssignSource" in graphql["requests"][0]["query"]
 
 
 async def test_play_playlist_assigns_then_starts(graphql, session) -> None:

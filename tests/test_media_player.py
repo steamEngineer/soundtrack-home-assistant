@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from homeassistant.components.diagnostics import REDACTED
 from homeassistant.components.media_player import MediaClass, MediaPlayerState, SearchMediaQuery
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
@@ -35,6 +37,7 @@ async def test_zone_player_reports_what_is_playing(hass, mock_api) -> None:
     assert state.attributes["media_artist"] == "Commodores"
     assert state.attributes["volume_level"] == 0.5
     assert state.attributes["source"] == "Morning"
+    assert state.attributes["media_position"] == 42
     assert "Front Bar" in (state.attributes.get("friendly_name") or entity_id)
 
     device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, ZONE_ID), entry.entry_id)
@@ -126,6 +129,12 @@ async def test_browse_and_search(hass, mock_api) -> None:
 
     discover = await player.async_browse_media("discover", "discover")
     assert discover.children[0].title == "Jazz"
+    assert discover.children[0].thumbnail == "https://cdn.example/300/300/jazz"
+
+    genre = await player.async_browse_media("genre", discover.children[0].media_content_id)
+    assert [child.title for child in genre.children] == ["Jazz After Dark", "Lounge"]
+    assert genre.children[0].can_play is True
+    assert genre.children[1].can_expand is True
 
     found = await player.async_search_media(SearchMediaQuery(search_query="jazz"))
     assert [item.title for item in found.result] == ["Jazz After Dark"]
@@ -134,6 +143,31 @@ async def test_browse_and_search(hass, mock_api) -> None:
         SearchMediaQuery(search_query="jazz", media_filter_classes=[MediaClass.ALBUM])
     )
     assert list(empty.result) == []
+
+
+async def test_command_refreshes_again_after_the_zone_catches_up(hass, mock_api, monkeypatch) -> None:
+    from custom_components.soundtrack import media_player as player_module
+
+    monkeypatch.setattr(player_module, "_FOLLOW_UP_SECONDS", 0)
+    entry, entity_id = await _async_setup(hass, mock_api)
+    refreshes = 0
+    refresh = entry.runtime_data.async_refresh
+
+    async def _count():
+        nonlocal refreshes
+        refreshes += 1
+        await refresh()
+
+    entry.runtime_data.async_refresh = _count
+    await hass.services.async_call(
+        "media_player",
+        "media_pause",
+        {ATTR_ENTITY_ID: entity_id},
+        blocking=True,
+    )
+    await asyncio.sleep(0)
+    await hass.async_block_till_done()
+    assert refreshes >= 2
 
 
 async def test_rejected_refresh_starts_reauth(hass, mock_api) -> None:

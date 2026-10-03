@@ -95,6 +95,9 @@ class Track:
     image_url: str | None
     duration: int | None
     started_at: datetime | None
+    # Seconds into the track as Soundtrack last measured it, and when that was.
+    progress: float | None = None
+    progress_at: datetime | None = None
 
 
 @dataclass(slots=True)
@@ -211,13 +214,17 @@ def parse_instant(value: str | None) -> datetime | None:
 
 
 def _url(value: Any) -> str | None:
+    found: str | None = None
     if isinstance(value, str) and value:
-        return value
-    if isinstance(value, dict):
+        found = value
+    elif isinstance(value, dict):
         inner = value.get("url")
         if isinstance(inner, str) and inner:
-            return inner
-    return None
+            found = inner
+    if found and "%w" in found:
+        # Soundtrack leaves the pixel size in the URL. A literal %w is a 400.
+        return found.replace("%w", "300").replace("%h", "300")
+    return found
 
 
 def _image_from_display(display: dict[str, Any] | None) -> str | None:
@@ -245,6 +252,11 @@ def _nodes(connection: dict[str, Any] | None) -> tuple[list[dict[str, Any]], dic
     return nodes, connection.get("pageInfo") or {}
 
 
+def _category(node: dict[str, Any]) -> Category:
+    image = _image_from_display(node.get("display")) or _url((node.get("image") or {}).get("large"))
+    return Category(id=node["id"], name=node.get("name") or "Category", image_url=image)
+
+
 def _playlist(node: dict[str, Any]) -> PlaylistRef:
     return PlaylistRef(
         id=node["id"],
@@ -252,6 +264,25 @@ def _playlist(node: dict[str, Any]) -> PlaylistRef:
         description=node.get("description") or None,
         image_url=_image_from_display(node.get("display")),
     )
+
+
+def _progress(playback: dict[str, Any]) -> tuple[float | None, datetime | None]:
+    """Soundtrack's measured position. Wall clock from startedAt includes time spent paused."""
+    raw = playback.get("progress") or {}
+    milliseconds = raw.get("progressMs")
+    if isinstance(milliseconds, bool) or not isinstance(milliseconds, int):
+        return None, None
+    return max(0.0, milliseconds / 1000), parse_instant(raw.get("updatedAt"))
+
+
+def _newer_track(current: Track | None, candidate: Track | None) -> Track | None:
+    if current is None:
+        return candidate
+    if candidate is None or candidate.started_at is None:
+        return current
+    if current.started_at is None or candidate.started_at > current.started_at:
+        return candidate
+    return current
 
 
 def _track(now_playing: dict[str, Any] | None) -> Track | None:
@@ -328,6 +359,18 @@ def parse_snapshot(data: dict[str, Any], *, now: datetime | None = None) -> Snap
             for zone in zone_nodes:
                 playback = zone.get("playback") or {}
                 source_id, source_name, source_type = _source(playback.get("playFrom"))
+                current = playback.get("current") or {}
+                playable = current.get("playable") if isinstance(current.get("playable"), dict) else None
+                current_track = None
+                if playable and playable.get("__typename") in {None, "Track"} and (
+                    playable.get("title") or playable.get("name") or playable.get("__typename") == "Track"
+                ):
+                    current_track = _track({"startedAt": current.get("start"), "track": playable})
+                track = _newer_track(_track(zone.get("nowPlaying")), current_track)
+                progress, progress_at = _progress(playback)
+                if track is not None and progress is not None:
+                    track.progress = progress
+                    track.progress_at = progress_at
                 zones[zone["id"]] = Zone(
                     id=zone["id"],
                     name=zone.get("name") or "Sound zone",
@@ -342,7 +385,7 @@ def parse_snapshot(data: dict[str, Any], *, now: datetime | None = None) -> Snap
                     source_id=source_id,
                     source_name=source_name,
                     source_type=source_type,
-                    track=_track(zone.get("nowPlaying")),
+                    track=track,
                 )
     return Snapshot(
         user_name=me.get("name"),
@@ -447,6 +490,14 @@ query Snapshot($first: Int!) {{
                         playback {{
                           state
                           volume
+                          progress {{ progressMs updatedAt }}
+                          current {{
+                            start
+                            playable {{
+                              __typename
+                              ... on Track {{ {_TRACK_FIELDS} }}
+                            }}
+                          }}
                           playFrom {{
                             __typename
                             ... on Playlist {{ id name }}
@@ -505,6 +556,7 @@ query Categories($first: Int!) {
       node {
         id
         name
+        display { image { placeholder sizes { thumbnail teaser hero } } }
         image { large { url } }
       }
     }
@@ -524,13 +576,30 @@ query SearchPlaylists($query: String!, $first: Int!) {{
 }}
 """
 
-_CATEGORY_PLAYLISTS_QUERY = f"""
-query CategoryPlaylists($id: ID!, $first: Int!) {{
-  browseCategory(id: $id) {{
-    id
-    name
-    playlists(first: $first) {{
-      edges {{ node {{ {_PLAYLIST_FIELDS} }} }}
+_CATEGORY_PAGE_QUERY = f"""
+query CategoryPage($id: String!) {{
+  editorialBrowse(id: $id) {{
+    title
+    sections(first: 8) {{
+      edges {{
+        node {{
+          title
+          items(first: 20) {{
+            edges {{
+              node {{
+                __typename
+                ... on Playlist {{ {_PLAYLIST_FIELDS} }}
+                ... on BrowseCategory {{
+                  id
+                  name
+                  display {{ image {{ placeholder sizes {{ thumbnail teaser hero }} }} }}
+                  image {{ large {{ url }} }}
+                }}
+              }}
+            }}
+          }}
+        }}
+      }}
     }}
   }}
 }}
@@ -783,26 +852,38 @@ class SoundtrackClient:
         """List Soundtrack browse categories."""
         data = await self.execute(_CATEGORIES_QUERY, {"first": PAGE_SIZE})
         nodes, _page = _nodes(data.get("browseCategories"))
-        categories: list[Category] = []
-        for node in nodes:
-            image = ((node.get("image") or {}).get("large") or {}).get("url")
-            categories.append(
-                Category(id=node["id"], name=node.get("name") or "Category", image_url=image)
-            )
-        return categories
+        return [_category(node) for node in nodes if node.get("id")]
 
-    async def async_category_playlists(self, category_id: str) -> list[PlaylistRef]:
-        """List playlists inside a browse category."""
-        data = await self.execute(
-            _CATEGORY_PLAYLISTS_QUERY,
-            {"id": category_id, "first": PAGE_SIZE},
+    async def async_category_page(self, category_id: str) -> tuple[str, list[PlaylistRef], list[Category]]:
+        """Playlists and related categories for one Discover entry.
+
+        ``browseCategory.playlists`` is empty on the current API. The editorial
+        page ``soundtrack:browse:<id>`` is what the Soundtrack app renders.
+        """
+        page_id = (
+            category_id
+            if category_id.startswith("soundtrack:browse:")
+            else f"soundtrack:browse:{category_id}"
         )
-        category = data.get("browseCategory") or {}
-        nodes, page = _nodes(category.get("playlists"))
-        if page.get("hasNextPage"):
-            # ponytail: one page of 100 per category. Upgrade path: cursor loop.
-            _LOGGER.debug("Category %s has more playlists than the first page", category_id)
-        return [_playlist(node) for node in nodes]
+        data = await self.execute(_CATEGORY_PAGE_QUERY, {"id": page_id})
+        page = data.get("editorialBrowse") or {}
+        playlists: list[PlaylistRef] = []
+        seen: set[str] = set()
+        related: list[Category] = []
+        seen_related: set[str] = set()
+        for section in _nodes(page.get("sections"))[0]:
+            for node in _nodes(section.get("items"))[0]:
+                kind = node.get("__typename")
+                if kind == "Playlist" and node.get("id") and node["id"] not in seen:
+                    seen.add(node["id"])
+                    playlists.append(_playlist(node))
+                elif kind == "BrowseCategory" and node.get("id") and node["id"] not in seen_related:
+                    if node["id"] == category_id:
+                        continue
+                    seen_related.add(node["id"])
+                    related.append(_category(node))
+        # ponytail: first 8 sections, 20 items each. Upgrade path: follow section cursors.
+        return page.get("title") or "Playlists", playlists, related
 
     async def async_play(self, zone_id: str) -> None:
         """Resume playback."""
@@ -824,9 +905,23 @@ class SoundtrackClient:
         )
 
     async def async_play_playlist(self, zone_id: str, playlist_id: str) -> None:
-        """Assign a playlist and start it on one sound zone."""
-        await self.execute(_ASSIGN_MUTATION, {"soundZone": zone_id, "source": playlist_id})
-        await self.execute(_PLAY_MUTATION, {"soundZone": zone_id})
+        """Assign a playlist and start it. Each step is retried once.
+
+        Assign with ``immediate: true`` and the following ``play`` race on a
+        zone that is still switching source. The second call is the one that
+        lands.
+        """
+        await self._once_more(
+            lambda: self.execute(_ASSIGN_MUTATION, {"soundZone": zone_id, "source": playlist_id})
+        )
+        await self._once_more(lambda: self.execute(_PLAY_MUTATION, {"soundZone": zone_id}))
+
+    async def _once_more(self, call) -> dict[str, Any]:
+        try:
+            return await call()
+        except SoundtrackApiError:
+            await asyncio.sleep(0.75)
+            return await call()
 
     async def async_favorite(self, account_id: str, playlist_id: str) -> None:
         """Save a playlist on the account."""

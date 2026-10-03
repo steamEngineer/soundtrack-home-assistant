@@ -36,9 +36,9 @@ One media player per sound zone, named from the location and the zone.
 | Source | Saved playlists for that zone's account. Picking one starts it |
 | Media browser | **Favorites** are the account music library. **Discover** is Soundtrack's browse categories |
 
-The player shows the track title, artists, album, artwork, and how far into the track you are while it is playing. Changes you make in Home Assistant refresh immediately. Changes made in the Soundtrack app show up on the next poll, about every 15 seconds.
+The player shows the track title, artists, album, artwork, and the position Soundtrack last reported, including while paused. Home Assistant keeps that position moving while the zone is playing. Changes you make refresh immediately and again a few seconds later, once the zone has caught up. Changes made in the Soundtrack app show up on the next poll, about every 15 seconds.
 
-The media browser search box queries Soundtrack's playlist catalog. Favorites are the playlists saved on the account. Discover is the browse categories.
+The media browser search box queries Soundtrack's playlist catalog. Favorites are the playlists saved on the account. Discover lists browse categories; opening one loads that category's editorial playlists.
 
 ### Play a playlist on one speaker
 

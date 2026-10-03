@@ -21,6 +21,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -44,6 +45,9 @@ _TYPE_ROOT = "root"
 _TYPE_FAVORITES = "favorites"
 _TYPE_DISCOVER = "discover"
 _TYPE_CATEGORY = "category"
+# Soundtrack's nowPlaying lags the command. One more poll, then the 15s cycle.
+# Upgrade path: playbackUpdate over graphql-ws.
+_FOLLOW_UP_SECONDS = 4
 
 _FEATURES = (
     MediaPlayerEntityFeature.PLAY
@@ -112,6 +116,7 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
         super().__init__(coordinator)
         self._zone_id = zone_id
         self._attr_unique_id = zone_id
+        self._follow_up = None
 
     @property
     def _zone(self):
@@ -225,17 +230,27 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
     def media_position(self) -> float | None:
         zone = self._zone
         data = self.coordinator.data
-        if zone is None or data is None or zone.track is None:
+        if zone is None or zone.track is None:
+            return None
+        track = zone.track
+        if track.progress is not None:
+            if track.duration is not None:
+                return min(track.progress, float(track.duration))
+            return track.progress
+        if data is None:
             return None
         return track_position(
-            zone.track.started_at,
+            track.started_at,
             data.fetched_at,
-            zone.track.duration,
+            track.duration,
             playing=playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online) == "playing",
         )
 
     @property
     def media_position_updated_at(self):
+        zone = self._zone
+        if zone is not None and zone.track is not None and zone.track.progress_at is not None:
+            return zone.track.progress_at
         if self.media_position is None or self.coordinator.data is None:
             return None
         return self.coordinator.data.fetched_at
@@ -365,14 +380,15 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
                 children=[_category_media(category) for category in categories],
                 can_search=True,
             )
-        if kind == _TYPE_CATEGORY and media_content_id:
-            playlists = await self.coordinator.client.async_category_playlists(media_content_id)
+        if kind in {_TYPE_CATEGORY, MediaClass.GENRE} and media_content_id:
+            title, playlists, related = await self.coordinator.client.async_category_page(media_content_id)
             return _folder(
-                "Playlists",
+                title,
                 _TYPE_CATEGORY,
                 media_content_id,
                 MediaClass.PLAYLIST,
-                children=[_playlist_media(playlist) for playlist in playlists],
+                children=[_playlist_media(playlist) for playlist in playlists]
+                + [_category_media(category) for category in related],
             )
         raise HomeAssistantError("That Soundtrack library folder is not available.")
 
@@ -409,6 +425,19 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
         except SoundtrackError as err:
             self._raise_command_error(err)
         await self.coordinator.async_refresh()
+        if self._follow_up is not None:
+            self._follow_up()
+        self._follow_up = async_call_later(self.hass, _FOLLOW_UP_SECONDS, self._refresh_again)
+
+    async def _refresh_again(self, _now) -> None:
+        self._follow_up = None
+        await self.coordinator.async_refresh()
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._follow_up is not None:
+            self._follow_up()
+            self._follow_up = None
+        await super().async_will_remove_from_hass()
 
     def _raise_command_error(self, err: SoundtrackError) -> None:
         if isinstance(err, SoundtrackAuthError):

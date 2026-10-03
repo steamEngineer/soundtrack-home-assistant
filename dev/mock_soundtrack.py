@@ -109,6 +109,39 @@ class SoundtrackMock:
         if "play(" in query:
             self.state = "playing"
             return web.json_response({"data": {"play": {"status": "playing"}}})
+        if "editorialBrowse" in query:
+            playlist = _playlist("playlist-jazz")
+            playlist["__typename"] = "Playlist"
+            return web.json_response(
+                {
+                    "data": {
+                        "editorialBrowse": {
+                            "title": "Jazz",
+                            "sections": {
+                                "edges": [
+                                    {
+                                        "node": {
+                                            "title": "Popular",
+                                            "items": {
+                                                "edges": [
+                                                    {"node": playlist},
+                                                    {
+                                                        "node": {
+                                                            "__typename": "BrowseCategory",
+                                                            "id": "lounge",
+                                                            "name": "Lounge",
+                                                        }
+                                                    },
+                                                ]
+                                            },
+                                        }
+                                    }
+                                ]
+                            },
+                        }
+                    }
+                }
+            )
         if "browseCategories" in query:
             return web.json_response({"data": {"browseCategories": _edges([_category()])}})
         if "browseCategory" in query:
@@ -214,6 +247,16 @@ class SoundtrackMock:
             "playback": {
                 "state": self.state,
                 "volume": self.volume,
+                "progress": {"progressMs": 42000, "updatedAt": "2026-10-03T03:00:42Z"},
+                "current": {
+                    "start": "2026-10-03T03:00:00Z",
+                    "playable": {
+                        "__typename": "Track",
+                        "title": self.track_title,
+                        "durationMs": 180000,
+                        "artists": [{"name": self.track_artist}],
+                    },
+                },
                 "playFrom": {
                     "__typename": "Playlist",
                     "id": self.source_id,
@@ -251,7 +294,11 @@ def _playlist(playlist_id: str) -> dict[str, Any]:
 
 
 def _category() -> dict[str, Any]:
-    return {"id": "category-jazz", "name": "Jazz", "image": {"large": {"url": "https://cdn.example/jazz.jpg"}}}
+    return {
+        "id": "category-jazz",
+        "name": "Jazz",
+        "image": {"large": {"url": "https://cdn.example/%w/%h/jazz"}},
+    }
 
 
 def _auth_error() -> web.Response:

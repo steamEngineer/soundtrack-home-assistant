@@ -4,9 +4,9 @@
   "codeowners": ["@steamEngineer"],
   "config_flow": true,
   "documentation": "https://github.com/steamEngineer/soundtrack-home-assistant",
-  "issue_tracker": "https://github.com/steamEngineer/soundtrack-home-assistant/issues",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/steamEngineer/soundtrack-home-assistant/issues",
   "requirements": [],
   "version": "0.0.1"
 }

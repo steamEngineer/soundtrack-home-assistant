@@ -70,7 +70,9 @@ class SoundtrackMock:
         variables = body.get("variables") or {}
         if "loginUser" in query:
             return self._login(variables)
-        if self.reject_refresh or not (request.headers.get("Authorization") or "").startswith("Bearer "):
+        if self.reject_refresh or not (request.headers.get("Authorization") or "").startswith(
+            "Bearer "
+        ):
             return _auth_error()
         if "refreshLogin" in query:
             return web.json_response(
@@ -88,11 +90,15 @@ class SoundtrackMock:
             playlist_id = variables.get("source")
             if playlist_id and playlist_id not in self.library:
                 self.library.append(playlist_id)
-            return web.json_response({"data": {"addToMusicLibrary": {"musicLibrary": {"id": ACCOUNT_ID}}}})
+            return web.json_response(
+                {"data": {"addToMusicLibrary": {"musicLibrary": {"id": ACCOUNT_ID}}}}
+            )
         if "removeFromMusicLibrary" in query:
             playlist_id = variables.get("source")
             self.library = [item for item in self.library if item != playlist_id]
-            return web.json_response({"data": {"removeFromMusicLibrary": {"musicLibrary": {"id": ACCOUNT_ID}}}})
+            return web.json_response(
+                {"data": {"removeFromMusicLibrary": {"musicLibrary": {"id": ACCOUNT_ID}}}}
+            )
         if "soundZoneAssignSource" in query:
             self.source_id = variables.get("source") or self.source_id
             return web.json_response({"data": {"soundZoneAssignSource": {"soundZones": [ZONE_ID]}}})
@@ -171,7 +177,9 @@ class SoundtrackMock:
                     "data": {
                         "account": {
                             "musicLibrary": {
-                                "playlists": _edges([_playlist(playlist_id) for playlist_id in self.library])
+                                "playlists": _edges(
+                                    [_playlist(playlist_id) for playlist_id in self.library]
+                                )
                             }
                         }
                     }
@@ -221,7 +229,10 @@ class SoundtrackMock:
                     "businessName": "Ada's Cafe",
                     "musicLibrary": {
                         "playlists": _edges(
-                            [{"id": playlist_id, "name": _CATALOG[playlist_id]} for playlist_id in self.library],
+                            [
+                                {"id": playlist_id, "name": _CATALOG[playlist_id]}
+                                for playlist_id in self.library
+                            ],
                             more=False,
                         )
                     },
@@ -290,7 +301,9 @@ def _playlist(playlist_id: str) -> dict[str, Any]:
         "id": playlist_id,
         "name": _CATALOG.get(playlist_id, "Playlist"),
         "description": None,
-        "display": {"image": {"sizes": {"thumbnail": {"url": f"https://cdn.example/{playlist_id}.jpg"}}}},
+        "display": {
+            "image": {"sizes": {"thumbnail": {"url": f"https://cdn.example/{playlist_id}.jpg"}}}
+        },
     }
 
 

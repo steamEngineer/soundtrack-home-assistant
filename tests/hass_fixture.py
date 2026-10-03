@@ -9,37 +9,54 @@ discovers custom_components.
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator, Mapping
 from contextlib import suppress
 from typing import Any
-import os
 from unittest.mock import patch
 
 import aiohttp
 from aiohttp.test_utils import unused_port
-
+from dev.mock_soundtrack import EXPIRES, USER_ID
 from homeassistant import auth, config_entries, loader
-from homeassistant.helpers import frame as frame_helper
 from homeassistant.auth import auth_store
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import CoreState, HomeAssistant, callback
-from homeassistant.setup import async_setup_component
 from homeassistant.helpers import (
     area_registry as ar,
+)
+from homeassistant.helpers import (
     category_registry as cr,
+)
+from homeassistant.helpers import (
     condition,
-    device_registry as dr,
     entity,
-    entity_registry as er,
-    floor_registry as fr,
-    issue_registry as ir,
-    label_registry as lr,
-    restore_state as rs,
     storage,
     translation,
     trigger,
 )
-from homeassistant.util import dt as dt_util, ulid as ulid_util
+from homeassistant.helpers import (
+    device_registry as dr,
+)
+from homeassistant.helpers import (
+    entity_registry as er,
+)
+from homeassistant.helpers import (
+    floor_registry as fr,
+)
+from homeassistant.helpers import frame as frame_helper
+from homeassistant.helpers import (
+    issue_registry as ir,
+)
+from homeassistant.helpers import (
+    label_registry as lr,
+)
+from homeassistant.helpers import (
+    restore_state as rs,
+)
+from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
+from homeassistant.util import ulid as ulid_util
 from homeassistant.util.unit_system import METRIC_SYSTEM
 
 from custom_components.soundtrack.const import (
@@ -50,7 +67,6 @@ from custom_components.soundtrack.const import (
     CONF_USER_ID,
     DOMAIN,
 )
-from dev.mock_soundtrack import EXPIRES, USER_ID
 
 
 class _TestResolver(aiohttp.ThreadedResolver):
@@ -157,7 +173,10 @@ async def async_test_home_assistant(config_dir: str) -> AsyncGenerator[HomeAssis
         patch("homeassistant.helpers.entity_registry.EntityRegistryStore", _StoreWithoutWriteLoad),
         patch("homeassistant.helpers.storage.Store", _StoreWithoutWriteLoad),
         patch("homeassistant.helpers.issue_registry.IssueRegistryStore", _StoreWithoutWriteLoad),
-        patch("homeassistant.helpers.restore_state.RestoreStateData.async_setup_dump", return_value=None),
+        patch(
+            "homeassistant.helpers.restore_state.RestoreStateData.async_setup_dump",
+            return_value=None,
+        ),
         patch("homeassistant.helpers.restore_state.start.async_at_start"),
         patch(
             "homeassistant.helpers.aiohttp_client._async_make_resolver",

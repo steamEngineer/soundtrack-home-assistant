@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 
 import voluptuous as vol
-
 from homeassistant.components.media_player import (
     BrowseMedia,
     MediaClass,
@@ -19,10 +18,12 @@ from homeassistant.components.media_player import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, device_registry as dr, entity_platform
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import (
@@ -80,7 +81,9 @@ async def async_setup_entry(
     if not hass.services.has_service(DOMAIN, "play_playlist"):
         schema = {vol.Required("playlist_id"): cv.string}
         platform.async_register_entity_service("play_playlist", schema, "async_play_playlist")
-        platform.async_register_entity_service("favorite_playlist", schema, "async_favorite_playlist")
+        platform.async_register_entity_service(
+            "favorite_playlist", schema, "async_favorite_playlist"
+        )
         platform.async_register_entity_service(
             "unfavorite_playlist", schema, "async_unfavorite_playlist"
         )
@@ -132,7 +135,10 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
             return False
         # Offline is not a media-player state. Home Assistant shows the entity
         # as unavailable when this returns false.
-        return playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online) != "unavailable"
+        return (
+            playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online)
+            != "unavailable"
+        )
 
     @property
     def device_info(self) -> DeviceInfo:
@@ -248,7 +254,8 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
             track.started_at,
             data.fetched_at,
             track.duration,
-            playing=playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online) == "playing",
+            playing=playback_to_state(zone.playback_state, paired=zone.paired, online=zone.online)
+            == "playing",
         )
 
     @property
@@ -287,8 +294,10 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
         await self._run(self.coordinator.client.async_skip(self._zone_id))
 
     async def async_set_volume_level(self, volume: float) -> None:
-        """Set volume. The slider is mapped onto 17 steps (0–16)."""
-        await self._run(self.coordinator.client.async_set_volume(self._zone_id, level_to_volume(volume)))
+        """Set volume. The slider is mapped onto 17 steps (0-16)."""
+        await self._run(
+            self.coordinator.client.async_set_volume(self._zone_id, level_to_volume(volume))
+        )
 
     async def async_select_source(self, source: str) -> None:
         """Play a saved playlist chosen by name."""
@@ -386,7 +395,9 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
                 can_search=True,
             )
         if kind in {_TYPE_CATEGORY, MediaClass.GENRE} and media_content_id:
-            title, playlists, related = await self.coordinator.client.async_category_page(media_content_id)
+            title, playlists, related = await self.coordinator.client.async_category_page(
+                media_content_id
+            )
             return _folder(
                 title,
                 _TYPE_CATEGORY,

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from dev.mock_soundtrack import USER_ID
 from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_USER, ConfigEntryState
+from tests.hass_fixture import soundtrack_entry
 
 from custom_components.soundtrack.const import CONF_ACCESS_TOKEN, CONF_EMAIL, DOMAIN
-from dev.mock_soundtrack import USER_ID
-from tests.hass_fixture import soundtrack_entry
 
 
 async def test_user_flow_creates_entry(hass, mock_api) -> None:
@@ -76,7 +76,9 @@ async def test_reauth_replaces_the_session(hass, mock_api) -> None:
         context={"source": SOURCE_REAUTH, "entry_id": entry.entry_id, "unique_id": entry.unique_id},
     )
     assert result["step_id"] == "reauth_confirm"
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"password": "soundtrack"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"password": "soundtrack"}
+    )
     assert result["type"] == "abort"
     assert result["reason"] == "reauth_successful"
     await hass.async_block_till_done()
@@ -92,7 +94,9 @@ async def test_reauth_rejects_a_different_user(hass, mock_api) -> None:
         DOMAIN,
         context={"source": SOURCE_REAUTH, "entry_id": entry.entry_id, "unique_id": entry.unique_id},
     )
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"password": "other-account"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"password": "other-account"}
+    )
     assert result["type"] == "abort"
     assert result["reason"] == "wrong_account"
     assert entry.data[CONF_ACCESS_TOKEN] == "access-1"

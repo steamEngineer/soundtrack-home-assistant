@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiohttp
-from aiohttp import web
 import pytest
+from aiohttp import web
 
 from custom_components.soundtrack.api import (
+    _SNAPSHOT_QUERY,
     PlaylistRef,
     SoundtrackApiError,
     SoundtrackAuthError,
     SoundtrackClient,
     SoundtrackConnectionError,
     Tokens,
-    _SNAPSHOT_QUERY,
     async_login,
     level_to_volume,
     parse_snapshot,
@@ -55,42 +55,48 @@ def test_playback_state() -> None:
 
 
 def test_track_position() -> None:
-    start = datetime(2026, 10, 3, 3, 0, tzinfo=timezone.utc)
-    fetched = datetime(2026, 10, 3, 3, 0, 30, tzinfo=timezone.utc)
+    start = datetime(2026, 10, 3, 3, 0, tzinfo=UTC)
+    fetched = datetime(2026, 10, 3, 3, 0, 30, tzinfo=UTC)
     assert track_position(start, fetched, 180, playing=True) == 30
     assert track_position(start, fetched, 180, playing=False) is None
     assert track_position(None, fetched, 180, playing=True) is None
     assert track_position(fetched, start, 180, playing=True) == 0
-    assert track_position(start, datetime(2026, 10, 3, 3, 5, tzinfo=timezone.utc), 180, playing=True) == 180
+    assert track_position(start, datetime(2026, 10, 3, 3, 5, tzinfo=UTC), 180, playing=True) == 180
 
 
 def test_album_art_uses_a_square_picture_instead_of_the_thumbnail() -> None:
     from custom_components.soundtrack.api import _SNAPSHOT_QUERY, _image_from_display
 
     assert "size(width: 960, height: 960)" in _SNAPSHOT_QUERY
-    assert _image_from_display(
-        {
-            "image": {
-                "size": "https://cdn.example/k/960/960/art",
-                "sizes": {
-                    "thumbnail": "https://cdn.example/k/150/150/art",
-                    "teaser": "https://cdn.example/k/500/500/art",
-                    "hero": "https://cdn.example/k/1200/400/art",
-                },
-            }
-        }
-    ) == "https://cdn.example/k/960/960/art"
-    assert _image_from_display(
-        {
-            "image": {
-                "sizes": {
-                    "thumbnail": "https://cdn.example/k/150/150/art",
-                    "teaser": "https://cdn.example/k/500/500/art",
-                    "hero": "https://cdn.example/k/1200/400/art",
+    assert (
+        _image_from_display(
+            {
+                "image": {
+                    "size": "https://cdn.example/k/960/960/art",
+                    "sizes": {
+                        "thumbnail": "https://cdn.example/k/150/150/art",
+                        "teaser": "https://cdn.example/k/500/500/art",
+                        "hero": "https://cdn.example/k/1200/400/art",
+                    },
                 }
             }
-        }
-    ) == "https://cdn.example/k/500/500/art"
+        )
+        == "https://cdn.example/k/960/960/art"
+    )
+    assert (
+        _image_from_display(
+            {
+                "image": {
+                    "sizes": {
+                        "thumbnail": "https://cdn.example/k/150/150/art",
+                        "teaser": "https://cdn.example/k/500/500/art",
+                        "hero": "https://cdn.example/k/1200/400/art",
+                    }
+                }
+            }
+        )
+        == "https://cdn.example/k/500/500/art"
+    )
     assert _image_from_display({"image": {"placeholder": "https://cdn.example/%w/%h"}}) == (
         "https://cdn.example/960/960"
     )
@@ -156,8 +162,12 @@ def test_parse_snapshot_reads_zone_and_flags_truncation() -> None:
                                                                     "track": {
                                                                         "title": "Branches",
                                                                         "durationMs": 180000,
-                                                                        "artists": [{"name": "Fluida"}],
-                                                                        "album": {"title": "Horizon"},
+                                                                        "artists": [
+                                                                            {"name": "Fluida"}
+                                                                        ],
+                                                                        "album": {
+                                                                            "title": "Horizon"
+                                                                        },
                                                                         "display": {
                                                                             "image": {
                                                                                 "sizes": {
@@ -181,7 +191,7 @@ def test_parse_snapshot_reads_zone_and_flags_truncation() -> None:
                 },
             }
         },
-        now=datetime(2026, 10, 3, 3, 0, 10, tzinfo=timezone.utc),
+        now=datetime(2026, 10, 3, 3, 0, 10, tzinfo=UTC),
     )
     assert snapshot.truncated is True
     assert snapshot.user_name == "Ada"
@@ -198,7 +208,12 @@ def test_parse_snapshot_reads_zone_and_flags_truncation() -> None:
     assert zone.track.duration == 180
     assert zone.track.image_url == "https://cdn.example/art.jpg"
     assert snapshot.accounts["acc"].library_cursor == "cursor-1"
-    assert track_position(zone.track.started_at, snapshot.fetched_at, zone.track.duration, playing=True) == 10
+    assert (
+        track_position(
+            zone.track.started_at, snapshot.fetched_at, zone.track.duration, playing=True
+        )
+        == 10
+    )
 
 
 def test_parse_snapshot_prefers_measured_progress_and_the_newer_track() -> None:
@@ -237,14 +252,20 @@ def test_parse_snapshot_prefers_measured_progress_and_the_newer_track() -> None:
                                                                         "playable": {
                                                                             "__typename": "Track",
                                                                             "title": "Easy",
-                                                                            "artists": [{"name": "Commodores"}],
+                                                                            "artists": [
+                                                                                {
+                                                                                    "name": "Commodores"
+                                                                                }
+                                                                            ],
                                                                             "durationMs": 180000,
                                                                         },
                                                                     },
                                                                 },
                                                                 "nowPlaying": {
                                                                     "startedAt": "2026-10-03T03:00:00Z",
-                                                                    "track": {"title": "Nightshift"},
+                                                                    "track": {
+                                                                        "title": "Nightshift"
+                                                                    },
                                                                 },
                                                             }
                                                         }
@@ -266,7 +287,7 @@ def test_parse_snapshot_prefers_measured_progress_and_the_newer_track() -> None:
     assert track.title == "Easy"
     assert track.artists == "Commodores"
     assert track.progress == 12.5
-    assert track.progress_at == datetime(2026, 10, 3, 3, 2, 12, tzinfo=timezone.utc)
+    assert track.progress_at == datetime(2026, 10, 3, 3, 2, 12, tzinfo=UTC)
 
 
 def test_parse_snapshot_rejects_api_client_session() -> None:
@@ -288,7 +309,9 @@ def test_unwrap_distinguishes_sign_out_from_forbidden() -> None:
         unwrap_response(503, {})
     with pytest.raises(SoundtrackApiError):
         unwrap_response(429, {})
-    assert unwrap_response(200, {"data": {"ok": True}, "errors": [{"message": "partial"}]}) == {"ok": True}
+    assert unwrap_response(200, {"data": {"ok": True}, "errors": [{"message": "partial"}]}) == {
+        "ok": True
+    }
 
 
 @pytest.fixture
@@ -398,7 +421,11 @@ async def test_expired_access_token_refreshes_once(graphql, session) -> None:
             )
         if request.headers.get("Authorization") != "Bearer new-access":
             return web.json_response(
-                {"errors": [{"message": "Unauthenticated", "extensions": {"code": "UNAUTHENTICATED"}}]},
+                {
+                    "errors": [
+                        {"message": "Unauthenticated", "extensions": {"code": "UNAUTHENTICATED"}}
+                    ]
+                },
                 status=401,
             )
         return web.json_response({"data": {"ok": True}})
@@ -423,7 +450,9 @@ async def test_rejected_refresh_does_not_loop_or_retry_the_password(graphql, ses
     client = _client(session, graphql)
     with pytest.raises(SoundtrackAuthError):
         await client.execute("query { ok }")
-    kinds = ["refresh" if "refreshLogin" in item["query"] else "call" for item in graphql["requests"]]
+    kinds = [
+        "refresh" if "refreshLogin" in item["query"] else "call" for item in graphql["requests"]
+    ]
     assert kinds == ["call", "refresh"]
 
 
@@ -478,7 +507,9 @@ async def test_category_page_reads_editorial_playlists(graphql, session) -> None
                                     "node": {
                                         "id": "electronic",
                                         "name": "Electronic",
-                                        "image": {"large": {"url": "https://cdn.example/%w/%h/electronic"}},
+                                        "image": {
+                                            "large": {"url": "https://cdn.example/%w/%h/electronic"}
+                                        },
                                     }
                                 }
                             ]
@@ -499,8 +530,20 @@ async def test_category_page_reads_editorial_playlists(graphql, session) -> None
                                     "node": {
                                         "items": {
                                             "edges": [
-                                                {"node": {"__typename": "Playlist", "id": "pl1", "name": "House"}},
-                                                {"node": {"__typename": "Playlist", "id": "pl1", "name": "House"}},
+                                                {
+                                                    "node": {
+                                                        "__typename": "Playlist",
+                                                        "id": "pl1",
+                                                        "name": "House",
+                                                    }
+                                                },
+                                                {
+                                                    "node": {
+                                                        "__typename": "Playlist",
+                                                        "id": "pl1",
+                                                        "name": "House",
+                                                    }
+                                                },
                                                 {
                                                     "node": {
                                                         "__typename": "BrowseCategory",
@@ -629,11 +672,19 @@ async def test_snapshot_follows_library_pages(graphql, session) -> None:
                                         "businessName": "Ada's Cafe",
                                         "musicLibrary": {
                                             "playlists": {
-                                                "pageInfo": {"hasNextPage": True, "endCursor": "cursor-1"},
-                                                "edges": [{"node": {"id": "pl1", "name": "Morning"}}],
+                                                "pageInfo": {
+                                                    "hasNextPage": True,
+                                                    "endCursor": "cursor-1",
+                                                },
+                                                "edges": [
+                                                    {"node": {"id": "pl1", "name": "Morning"}}
+                                                ],
                                             }
                                         },
-                                        "locations": {"pageInfo": {"hasNextPage": False}, "edges": []},
+                                        "locations": {
+                                            "pageInfo": {"hasNextPage": False},
+                                            "edges": [],
+                                        },
                                     }
                                 }
                             ],
@@ -646,7 +697,10 @@ async def test_snapshot_follows_library_pages(graphql, session) -> None:
     graphql["respond"] = respond
     client = _client(session, graphql)
     snapshot = await client.async_snapshot()
-    assert [playlist.name for playlist in snapshot.accounts["acc"].playlists] == ["Morning", "Evening"]
+    assert [playlist.name for playlist in snapshot.accounts["acc"].playlists] == [
+        "Morning",
+        "Evening",
+    ]
     assert snapshot.accounts["acc"].library_cursor is None
 
 

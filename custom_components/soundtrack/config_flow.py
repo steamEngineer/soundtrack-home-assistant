@@ -10,7 +10,6 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_PASSWORD
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -20,7 +19,13 @@ from homeassistant.helpers.selector import (
     TextSelectorType,
 )
 
-from .api import SoundtrackAuthError, SoundtrackClient, SoundtrackConnectionError, SoundtrackError, async_login
+from .api import (
+    SoundtrackAuthError,
+    SoundtrackClient,
+    SoundtrackConnectionError,
+    SoundtrackError,
+    async_login,
+)
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_EMAIL,
@@ -35,13 +40,17 @@ _LOGGER = logging.getLogger(__name__)
 _USER_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_EMAIL): TextSelector(TextSelectorConfig(type=TextSelectorType.EMAIL)),
-        vol.Required(CONF_PASSWORD): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
+        vol.Required(CONF_PASSWORD): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
     }
 )
 
 _REAUTH_SCHEMA = vol.Schema(
     {
-        vol.Required(CONF_PASSWORD): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
+        vol.Required(CONF_PASSWORD): TextSelector(
+            TextSelectorConfig(type=TextSelectorType.PASSWORD)
+        ),
     }
 )
 

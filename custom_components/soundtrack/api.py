@@ -12,7 +12,7 @@ import logging
 from collections import Counter
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiohttp
@@ -142,15 +142,15 @@ class Snapshot:
 
 
 def volume_to_level(volume: int | None) -> float | None:
-    """Map Soundtrack's 0–16 step to Home Assistant's 0–1 level."""
+    """Map Soundtrack's 0-16 step to Home Assistant's 0-1 level."""
     if volume is None:
         return None
     return max(0.0, min(1.0, volume / VOLUME_MAX))
 
 
 def level_to_volume(level: float) -> int:
-    """Map a 0–1 level to Soundtrack's 0–16 step."""
-    return max(0, min(VOLUME_MAX, int(round(level * VOLUME_MAX))))
+    """Map a 0-1 level to Soundtrack's 0-16 step."""
+    return max(0, min(VOLUME_MAX, round(level * VOLUME_MAX)))
 
 
 def playback_to_state(playback: str | None, *, paired: bool, online: bool) -> str:
@@ -209,12 +209,12 @@ def parse_instant(value: str | None) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
+        return parsed.replace(tzinfo=UTC)
     return parsed
 
 
 # Square art for the player and the browser. The thumbnail preset is 150px,
-# and hero is a 1200×400 banner, so neither is the album picture.
+# and hero is a 1200x400 banner, so neither is the album picture.
 _ART_EDGE = 960
 
 
@@ -325,7 +325,7 @@ def _volume(value: Any) -> int | None:
         return None
     try:
         number = int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
     return max(0, min(VOLUME_MAX, number))
 
@@ -356,7 +356,9 @@ def parse_snapshot(data: dict[str, Any], *, now: datetime | None = None) -> Snap
             id=account_node["id"],
             name=account_node.get("businessName") or "Soundtrack",
             playlists=[_playlist(node) for node in playlist_nodes],
-            library_cursor=library_page.get("endCursor") if library_page.get("hasNextPage") else None,
+            library_cursor=library_page.get("endCursor")
+            if library_page.get("hasNextPage")
+            else None,
         )
         accounts[account.id] = account
         location_nodes, location_page = _nodes(account_node.get("locations"))
@@ -368,10 +370,18 @@ def parse_snapshot(data: dict[str, Any], *, now: datetime | None = None) -> Snap
                 playback = zone.get("playback") or {}
                 source_id, source_name, source_type = _source(playback.get("playFrom"))
                 current = playback.get("current") or {}
-                playable = current.get("playable") if isinstance(current.get("playable"), dict) else None
+                playable = (
+                    current.get("playable") if isinstance(current.get("playable"), dict) else None
+                )
                 current_track = None
-                if playable and playable.get("__typename") in {None, "Track"} and (
-                    playable.get("title") or playable.get("name") or playable.get("__typename") == "Track"
+                if (
+                    playable
+                    and playable.get("__typename") in {None, "Track"}
+                    and (
+                        playable.get("title")
+                        or playable.get("name")
+                        or playable.get("__typename") == "Track"
+                    )
                 ):
                     current_track = _track({"startedAt": current.get("start"), "track": playable})
                 track = _newer_track(_track(zone.get("nowPlaying")), current_track)
@@ -399,7 +409,7 @@ def parse_snapshot(data: dict[str, Any], *, now: datetime | None = None) -> Snap
         user_name=me.get("name"),
         zones=zones,
         accounts=accounts,
-        fetched_at=now or datetime.now(timezone.utc),
+        fetched_at=now or datetime.now(UTC),
         truncated=truncated,
     )
 
@@ -419,7 +429,9 @@ def _is_auth(status: int, errors: list[dict[str, Any]]) -> bool:
         message = str(error.get("message") or "").strip().casefold()
         if message in {"unauthenticated", "unauthorized", "invalid token"}:
             return True
-        if "token" in message and any(word in message for word in ("expired", "invalid", "revoked")):
+        if "token" in message and any(
+            word in message for word in ("expired", "invalid", "revoked")
+        ):
             return True
     return False
 
@@ -737,7 +749,9 @@ async def async_graphql(
                     raise SoundtrackConnectionError(
                         f"Soundtrack returned HTTP {response.status}."
                     ) from err
-                raise SoundtrackApiError("Soundtrack returned a response that was not JSON.") from err
+                raise SoundtrackApiError(
+                    "Soundtrack returned a response that was not JSON."
+                ) from err
             if not isinstance(body, dict):
                 raise SoundtrackApiError("Soundtrack returned a response that was not JSON.")
             return unwrap_response(response.status, body)
@@ -872,7 +886,9 @@ class SoundtrackClient:
         nodes, _page = _nodes(data.get("browseCategories"))
         return [_category(node) for node in nodes if node.get("id")]
 
-    async def async_category_page(self, category_id: str) -> tuple[str, list[PlaylistRef], list[Category]]:
+    async def async_category_page(
+        self, category_id: str
+    ) -> tuple[str, list[PlaylistRef], list[Category]]:
         """Playlists and related categories for one Discover entry.
 
         ``browseCategory.playlists`` is empty on the current API. The editorial
@@ -976,7 +992,7 @@ class SoundtrackClient:
         expires = parse_instant(self.tokens.expires_at)
         if expires is None:
             return False
-        return expires <= datetime.now(timezone.utc) + timedelta(seconds=TOKEN_REFRESH_MARGIN_SECONDS)
+        return expires <= datetime.now(UTC) + timedelta(seconds=TOKEN_REFRESH_MARGIN_SECONDS)
 
     async def _refresh_if_due(self) -> None:
         if self._expires_soon():

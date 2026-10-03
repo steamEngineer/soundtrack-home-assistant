@@ -87,12 +87,19 @@ Home Assistant 2026.4 and newer needs Python 3.14.2 or newer. Tests run inside a
 ```bash
 uv venv --python 3.14 .venv
 uv pip install -r requirements-dev.txt
-# The browser UI needs the frontend build that matches this Home Assistant release.
-uv pip install home-assistant-frontend==20260826.7
+.venv/bin/ruff check .
+.venv/bin/ruff format --check .
 .venv/bin/pytest
+.venv/bin/pre-commit install
 ```
 
-`pytest` covers the GraphQL client and, in Home Assistant itself, the config flow, reauth, zone setup, playback, favorites, browse, and search.
+The browser UI needs the frontend build that matches this Home Assistant release:
+
+```bash
+uv pip install home-assistant-frontend==20260826.7
+```
+
+`pytest` covers the GraphQL client and, in Home Assistant itself, the config flow, reauth, zone setup, playback, favorites, browse, and search. Ruff and pytest also run on pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 To click through the UI, run the local Soundtrack stand-in and a Home Assistant pointed at it. `SOUNDTRACK_API_URL` is optional. Leave it unset and the integration uses `https://api.soundtrackyourbrand.com/v2`.
 

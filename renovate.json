@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "schedule": ["at any time"],
+  "timezone": "UTC",
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "description": "Keep the Ruff pin and the Ruff pre-commit hook on one version.",
+      "matchPackageNames": ["ruff", "astral-sh/ruff-pre-commit"],
+      "groupName": "ruff"
+    },
+    {
+      "description": "Group routine Python updates.",
+      "matchManagers": ["pip_requirements"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "excludePackageNames": ["ruff"],
+      "groupName": "python dependencies"
+    },
+    {
+      "description": "Group routine GitHub Actions updates.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Group routine pre-commit hook updates.",
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "excludePackageNames": ["astral-sh/ruff-pre-commit"],
+      "groupName": "pre-commit hooks"
+    },
+    {
+      "description": "Home Assistant majors can move the supported floor. Leave them on the dashboard until someone reviews them.",
+      "matchPackageNames": ["homeassistant"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

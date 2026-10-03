@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 import os
 import shutil
 import tempfile
+from collections.abc import AsyncGenerator
 
 import pytest
-
 from dev.mock_soundtrack import SoundtrackMock
-from tests.hass_fixture import async_test_home_assistant
-
 from homeassistant.core import HomeAssistant
+from tests.hass_fixture import async_test_home_assistant
 
 
 @pytest.fixture

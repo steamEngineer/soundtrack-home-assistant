@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import asyncio
 
+from dev.mock_soundtrack import ZONE_ID
 from homeassistant.components.diagnostics import REDACTED
 from homeassistant.components.media_player import MediaClass, MediaPlayerState, SearchMediaQuery
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from tests.hass_fixture import soundtrack_entry
 
 from custom_components.soundtrack.const import CONF_ACCESS_TOKEN, CONF_EMAIL, DOMAIN
 from custom_components.soundtrack.diagnostics import async_get_config_entry_diagnostics
-from dev.mock_soundtrack import ZONE_ID
-from tests.hass_fixture import soundtrack_entry
 
 
 async def _async_setup(hass, mock_api):
@@ -145,7 +145,9 @@ async def test_browse_and_search(hass, mock_api) -> None:
     assert list(empty.result) == []
 
 
-async def test_command_refreshes_again_after_the_zone_catches_up(hass, mock_api, monkeypatch) -> None:
+async def test_command_refreshes_again_after_the_zone_catches_up(
+    hass, mock_api, monkeypatch
+) -> None:
     from custom_components.soundtrack import media_player as player_module
 
     monkeypatch.setattr(player_module, "_FOLLOW_UP_SECONDS", 0)

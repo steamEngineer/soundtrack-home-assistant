@@ -1,0 +1,42 @@
+name: Bug
+description: Playback, browse, or sign-in does something wrong
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove emails, passwords, access tokens, and refresh tokens before you paste logs.
+  - type: input
+    id: ha
+    attributes:
+      label: Home Assistant version
+      placeholder: 2026.9.4
+    validations:
+      required: true
+  - type: input
+    id: integration
+    attributes:
+      label: Integration version
+      description: From the Soundtrack device page, or the `version` in `manifest.json`.
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Lines from `custom_components.soundtrack`, with tokens removed.
+      render: text

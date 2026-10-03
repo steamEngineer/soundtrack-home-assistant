@@ -1,0 +1,33 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["custom_components", "tests", "dev"]
+
+[tool.ruff.format]
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "SIM",
+  "RUF",
+  "W",
+  "C4",
+  "PIE",
+  "RET",
+  "LOG",
+]
+ignore = [
+  "E501", # The formatter owns line length.
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]

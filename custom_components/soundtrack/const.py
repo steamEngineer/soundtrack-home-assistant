@@ -15,6 +15,7 @@ def api_url() -> str:
     """
     return os.environ.get("SOUNDTRACK_API_URL") or API_URL
 
+
 CONF_EMAIL = "email"
 CONF_ACCESS_TOKEN = "access_token"
 CONF_REFRESH_TOKEN = "refresh_token"

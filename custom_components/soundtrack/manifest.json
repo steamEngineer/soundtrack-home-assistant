@@ -1,7 +1,7 @@
 {
   "domain": "soundtrack",
   "name": "Soundtrack",
-  "codeowners": [],
+  "codeowners": ["@steamEngineer"],
   "config_flow": true,
   "documentation": "https://www.soundtrackyourbrand.com/",
   "integration_type": "hub",

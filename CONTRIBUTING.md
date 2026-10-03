@@ -37,7 +37,7 @@ Open pull requests against `main`. Describe what changed and why. Leave password
 
 The default `GITHUB_TOKEN` can open those pull requests. GitHub does not start other workflows on pull requests that token opens, so CI stays quiet on them until a person retriggers it. To have CI run automatically, add a repository secret named `RENOVATE_TOKEN`: a fine-grained personal access token for this repo with read and write on contents, issues, and pull requests, plus the workflows permission.
 
-Ruff's pip pin and its pre-commit hook are grouped into one pull request. A major Home Assistant bump waits on the dependency dashboard until someone approves it, because that moves the oldest supported release.
+Ruff's pip pin and its pre-commit hook are grouped into one pull request. The oldest Home Assistant this integration supports is declared in `hacs.json`. The test plugin pin is the Home Assistant version the suite runs against.
 
 ## Reporting issues
 

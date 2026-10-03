@@ -1,12 +1,15 @@
-"""Config flow against a Home Assistant 2026.9 runtime and the local Soundtrack API."""
+"""Config flow against Home Assistant and the local Soundtrack API."""
 
 from __future__ import annotations
 
+import pytest
 from dev.mock_soundtrack import USER_ID
 from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_USER, ConfigEntryState
-from tests.hass_fixture import soundtrack_entry
+from tests.conftest import soundtrack_entry
 
 from custom_components.soundtrack.const import CONF_ACCESS_TOKEN, CONF_EMAIL, DOMAIN
+
+pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
 async def test_user_flow_creates_entry(hass, mock_api) -> None:

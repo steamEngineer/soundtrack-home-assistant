@@ -1,9 +1,10 @@
-"""Media player setup against Home Assistant 2026.9 and the local Soundtrack API."""
+"""Media player setup against Home Assistant and the local Soundtrack API."""
 
 from __future__ import annotations
 
 import asyncio
 
+import pytest
 from dev.mock_soundtrack import ZONE_ID
 from homeassistant.components.diagnostics import REDACTED
 from homeassistant.components.media_player import MediaClass, MediaPlayerState, SearchMediaQuery
@@ -11,10 +12,12 @@ from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from tests.hass_fixture import soundtrack_entry
+from tests.conftest import soundtrack_entry
 
 from custom_components.soundtrack.const import CONF_ACCESS_TOKEN, CONF_EMAIL, DOMAIN
 from custom_components.soundtrack.diagnostics import async_get_config_entry_diagnostics
+
+pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
 async def _async_setup(hass, mock_api):

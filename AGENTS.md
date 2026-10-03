@@ -7,7 +7,7 @@ Human contribution steps live in [CONTRIBUTING.md](CONTRIBUTING.md). This file i
 ## Layout
 
 - `custom_components/soundtrack/` is the integration Home Assistant loads.
-- `tests/` runs against a slim Home Assistant runtime in `tests/hass_fixture.py`.
+- `tests/` uses `pytest-homeassistant-custom-component` for Home Assistant's own `hass` fixture. `tests/conftest.py` only adds the Soundtrack stand-in.
 - `dev/mock_soundtrack.py` is the local GraphQL stand-in.
 - `config/` is a local Home Assistant config. It is gitignored and may hold a live session.
 
@@ -37,8 +37,7 @@ uv pip install -r requirements-dev.txt
 - The config entry is version 1.2. `async_migrate_entry` only bumps the minor version. 1.1 already stores the session fields 1.2 reads.
 - Zone devices set `via_device_id` to the hub. `via_device` is deprecated and raises when the call stack is not attributed to the integration.
 - There is no `MediaPlayerState.UNAVAILABLE`. An offline zone sets `available` to false.
-- Do not pin aiohttp. Home Assistant selects its own version.
-- Do not add `pytest-homeassistant-custom-component`. It pins an older Home Assistant.
+- Do not pin aiohttp. Home Assistant selects its own version. Tests take Home Assistant from `pytest-homeassistant-custom-component`.
 - Ruff's target is Python 3.14, so it formats `except (TypeError, ValueError)` to `except TypeError, ValueError` (PEP 758). Leave that form in place.
 - Do not commit `config/.storage`, and do not print tokens from it.
 

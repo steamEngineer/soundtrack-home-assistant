@@ -30,12 +30,6 @@
       "matchUpdateTypes": ["minor", "patch"],
       "excludePackageNames": ["astral-sh/ruff-pre-commit"],
       "groupName": "pre-commit hooks"
-    },
-    {
-      "description": "Home Assistant majors can move the supported floor. Leave them on the dashboard until someone reviews them.",
-      "matchPackageNames": ["homeassistant"],
-      "matchUpdateTypes": ["major"],
-      "dependencyDashboardApproval": true
     }
   ]
 }

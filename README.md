@@ -82,7 +82,7 @@ Pause, skip, and volume also work as the normal media player actions (`media_pla
 
 ## Development
 
-Home Assistant 2026.4 and newer needs Python 3.14.2 or newer. Tests run inside a slim Home Assistant 2026.9 runtime built from the published wheel. Core's `tests/common.py` is not in that wheel, and `pytest-homeassistant-custom-component` still pins Home Assistant 2025.1, so the fixture in `tests/hass_fixture.py` follows the 2026.9.4 test helper instead.
+Home Assistant 2026.4 and newer needs Python 3.14.2 or newer. Tests use Home Assistant's own helpers via `pytest-homeassistant-custom-component`.
 
 ```bash
 uv venv --python 3.14 .venv
@@ -93,37 +93,6 @@ uv pip install -r requirements-dev.txt
 .venv/bin/pre-commit install
 ```
 
-The browser UI needs the frontend build that matches this Home Assistant release:
-
-```bash
-uv pip install home-assistant-frontend==20260826.7
-```
-
 `pytest` covers the GraphQL client and, in Home Assistant itself, the config flow, reauth, zone setup, playback, favorites, browse, and search. Ruff and pytest also run on pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-To click through the UI, run the local Soundtrack stand-in and a Home Assistant pointed at it. `SOUNDTRACK_API_URL` is optional. Leave it unset and the integration uses `https://api.soundtrackyourbrand.com/v2`.
-
-```bash
-mkdir -p config/custom_components config/.storage
-ln -sfn "$PWD/custom_components/soundtrack" config/custom_components/soundtrack
-cp dev/configuration.yaml config/configuration.yaml
-# Home Assistant 2026 treats an http: port in YAML as a five-minute trial,
-# then restarts on 8123. Seed the stable port before the first boot.
-cp dev/http.storage.json config/.storage/http
-SOUNDTRACK_API_URL=http://127.0.0.1:43124/ .venv/bin/python dev/mock_soundtrack.py
-```
-
-In a second shell:
-
-```bash
-SOUNDTRACK_API_URL=http://127.0.0.1:43124/ .venv/bin/python -m homeassistant --config config
-```
-
-Assist is a built-in platform, so this Home Assistant also needs `pymicro-vad` and `pyspeex-noise`. On this image `c++` is clang and it looks for the GCC 14 headers:
-
-```bash
-sudo apt-get install -y g++ libstdc++-14-dev
-uv pip install pymicro-vad==1.0.1 pyspeex-noise==1.0.2
-```
-
-Open http://127.0.0.1:43123. On the stand-in, sign in as `ada@example.com` with password `soundtrack`. That account has one sound zone, Front Bar, playing Nightshift. The password is only valid for the stand-in.
+`dev/mock_soundtrack.py` is the GraphQL stand-in those tests talk to. Point a Home Assistant at it with `SOUNDTRACK_API_URL=http://127.0.0.1:43124/` and run `.venv/bin/python dev/mock_soundtrack.py`. Sign in as `ada@example.com` with password `soundtrack`. That account has one sound zone, Front Bar, playing Nightshift. Leave `SOUNDTRACK_API_URL` unset and the integration uses `https://api.soundtrackyourbrand.com/v2`.

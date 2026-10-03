@@ -39,6 +39,10 @@ The default `GITHUB_TOKEN` can open those pull requests. GitHub does not start o
 
 Ruff's pip pin and its pre-commit hook are grouped into one pull request. The oldest Home Assistant this integration supports is declared in `hacs.json`. The test plugin pin is the Home Assistant version the suite runs against.
 
+## Releases
+
+HACS uses GitHub releases for the version it offers. Tag a commit `v1.2.3`, matching `version` in `custom_components/soundtrack/manifest.json`. Pushing that tag publishes the release.
+
 ## Reporting issues
 
 Use the bug or feature form. Soundtrack billing, speaker hardware, and the Soundtrack app belong with Soundtrack, not here. Security reports go through [private vulnerability reporting](SECURITY.md).

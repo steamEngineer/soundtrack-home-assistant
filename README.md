@@ -41,7 +41,9 @@ Home Assistant 2026.4 or newer is required.
 
 ## Install
 
-In HACS, add this repository as a custom integration, install Soundtrack, and restart Home Assistant.
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=steamEngineer&repository=soundtrack-home-assistant&category=integration)
+
+In HACS, add this repository as a custom integration, install Soundtrack, and restart Home Assistant. The button above does that for you once the repository is in HACS.
 
 To install by hand, copy `custom_components/soundtrack` into your config directory:
 

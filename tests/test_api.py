@@ -64,15 +64,36 @@ def test_track_position() -> None:
     assert track_position(start, datetime(2026, 10, 3, 3, 5, tzinfo=timezone.utc), 180, playing=True) == 180
 
 
-def test_placeholder_art_is_resized() -> None:
-    from custom_components.soundtrack.api import _image_from_display
+def test_album_art_uses_a_square_picture_instead_of_the_thumbnail() -> None:
+    from custom_components.soundtrack.api import _SNAPSHOT_QUERY, _image_from_display
 
-    assert _image_from_display({"image": {"placeholder": "https://cdn.example/%w/%h"}}) == (
-        "https://cdn.example/300/300"
-    )
+    assert "size(width: 960, height: 960)" in _SNAPSHOT_QUERY
     assert _image_from_display(
-        {"image": {"sizes": {"thumbnail": "https://cdn.example/%w/%h/jazz"}}}
-    ) == "https://cdn.example/300/300/jazz"
+        {
+            "image": {
+                "size": "https://cdn.example/k/960/960/art",
+                "sizes": {
+                    "thumbnail": "https://cdn.example/k/150/150/art",
+                    "teaser": "https://cdn.example/k/500/500/art",
+                    "hero": "https://cdn.example/k/1200/400/art",
+                },
+            }
+        }
+    ) == "https://cdn.example/k/960/960/art"
+    assert _image_from_display(
+        {
+            "image": {
+                "sizes": {
+                    "thumbnail": "https://cdn.example/k/150/150/art",
+                    "teaser": "https://cdn.example/k/500/500/art",
+                    "hero": "https://cdn.example/k/1200/400/art",
+                }
+            }
+        }
+    ) == "https://cdn.example/k/500/500/art"
+    assert _image_from_display({"image": {"placeholder": "https://cdn.example/%w/%h"}}) == (
+        "https://cdn.example/960/960"
+    )
 
 
 def test_playlist_sources_disambiguate_names() -> None:
@@ -501,7 +522,7 @@ async def test_category_page_reads_editorial_playlists(graphql, session) -> None
     graphql["respond"] = respond
     client = _client(session, graphql)
     categories = await client.async_categories()
-    assert categories[0].image_url == "https://cdn.example/300/300/electronic"
+    assert categories[0].image_url == "https://cdn.example/960/960/electronic"
     title, playlists, related = await client.async_category_page("electronic")
     assert title == "Electronic"
     assert [(playlist.id, playlist.name) for playlist in playlists] == [("pl1", "House")]

@@ -129,7 +129,7 @@ async def test_browse_and_search(hass, mock_api) -> None:
 
     discover = await player.async_browse_media("discover", "discover")
     assert discover.children[0].title == "Jazz"
-    assert discover.children[0].thumbnail == "https://cdn.example/300/300/jazz"
+    assert discover.children[0].thumbnail == "https://cdn.example/960/960/jazz"
 
     genre = await player.async_browse_media("genre", discover.children[0].media_content_id)
     assert [child.title for child in genre.children] == ["Jazz After Dark", "Lounge"]

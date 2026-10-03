@@ -213,6 +213,11 @@ def parse_instant(value: str | None) -> datetime | None:
     return parsed
 
 
+# Square art for the player and the browser. The thumbnail preset is 150px,
+# and hero is a 1200×400 banner, so neither is the album picture.
+_ART_EDGE = 960
+
+
 def _url(value: Any) -> str | None:
     found: str | None = None
     if isinstance(value, str) and value:
@@ -223,7 +228,8 @@ def _url(value: Any) -> str | None:
             found = inner
     if found and "%w" in found:
         # Soundtrack leaves the pixel size in the URL. A literal %w is a 400.
-        return found.replace("%w", "300").replace("%h", "300")
+        edge = str(_ART_EDGE)
+        return found.replace("%w", edge).replace("%h", edge)
     return found
 
 
@@ -231,15 +237,17 @@ def _image_from_display(display: dict[str, Any] | None) -> str | None:
     if not display:
         return None
     image = display.get("image") or {}
+    sized = _url(image.get("size"))
+    if sized:
+        return sized
     sizes = image.get("sizes") or {}
-    for key in ("thumbnail", "teaser", "hero"):
-        found = _url(sizes.get(key))
-        if found:
-            return found
+    teaser = _url(sizes.get("teaser"))
+    if teaser:
+        return teaser
     placeholder = _url(image.get("placeholder"))
-    if placeholder and "%w" in placeholder:
-        return placeholder.replace("%w", "300").replace("%h", "300")
-    return placeholder
+    if placeholder:
+        return placeholder
+    return _url(sizes.get("thumbnail")) or _url(sizes.get("hero"))
 
 
 def _nodes(connection: dict[str, Any] | None) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -437,20 +445,30 @@ def unwrap_response(status: int, body: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
-_TRACK_FIELDS = """
+_DISPLAY_IMAGE = f"""
+display {{
+  image {{
+    placeholder
+    size(width: {_ART_EDGE}, height: {_ART_EDGE})
+    sizes {{ teaser thumbnail }}
+  }}
+}}
+"""
+
+_TRACK_FIELDS = f"""
 title
 name
 durationMs
-artists { name }
-album { title name }
-display { image { placeholder sizes { thumbnail teaser hero } } }
+artists {{ name }}
+album {{ title name }}
+{_DISPLAY_IMAGE}
 """
 
-_PLAYLIST_FIELDS = """
+_PLAYLIST_FIELDS = f"""
 id
 name
 description
-display { image { placeholder sizes { thumbnail teaser hero } } }
+{_DISPLAY_IMAGE}
 """
 
 _SNAPSHOT_QUERY = f"""
@@ -549,19 +567,19 @@ query Favorites($id: ID!, $first: Int!, $after: String) {{
 }}
 """
 
-_CATEGORIES_QUERY = """
-query Categories($first: Int!) {
-  browseCategories(first: $first) {
-    edges {
-      node {
+_CATEGORIES_QUERY = f"""
+query Categories($first: Int!) {{
+  browseCategories(first: $first) {{
+    edges {{
+      node {{
         id
         name
-        display { image { placeholder sizes { thumbnail teaser hero } } }
-        image { large { url } }
-      }
-    }
-  }
-}
+        {_DISPLAY_IMAGE}
+        image {{ large {{ url }} }}
+      }}
+    }}
+  }}
+}}
 """
 
 _SEARCH_QUERY = f"""
@@ -592,7 +610,7 @@ query CategoryPage($id: String!) {{
                 ... on BrowseCategory {{
                   id
                   name
-                  display {{ image {{ placeholder sizes {{ thumbnail teaser hero }} }} }}
+                  {_DISPLAY_IMAGE}
                   image {{ large {{ url }} }}
                 }}
               }}

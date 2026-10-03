@@ -14,13 +14,18 @@ Human contribution steps live in [CONTRIBUTING.md](CONTRIBUTING.md). This file i
 ## Commands
 
 ```bash
-uv venv --python 3.14 .venv
-uv pip install -r requirements-dev.txt
+uv venv --python 3.14 --allow-existing .venv
+uv pip install --python .venv/bin/python -r requirements-dev.txt
 .venv/bin/ruff check .
 .venv/bin/ruff format --check .
 .venv/bin/pytest
 .venv/bin/pre-commit run --all-files
 ```
+
+## Cursor Cloud specific instructions
+
+- The image `python3` is 3.12. `uv` (linked at `/usr/local/bin/uv`) installs CPython 3.14 into `.venv`. Run the commands above with `.venv/bin/`.
+- Pytest starts the Soundtrack stand-in itself. No secrets and no long-running process are required. The lab sign-in is in CONTRIBUTING.md.
 
 ## Easy to get wrong
 

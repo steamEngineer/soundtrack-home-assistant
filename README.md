@@ -1,50 +1,52 @@
 # Soundtrack for Home Assistant
 
-Control [Soundtrack](https://www.soundtrackyourbrand.com/) sound zones from Home Assistant. Each zone becomes a media player: you can see what is playing, pause, skip, set the volume, browse playlists, save the ones you want, and start one on a specific speaker.
+Play and control [Soundtrack](https://www.soundtrackyourbrand.com/) sound zones from Home Assistant. Each zone becomes its own media player, so you can see what is on, pause it, skip, change the volume, and start a playlist on that speaker.
 
-This is a Home Assistant integration, not a Music Assistant provider. Soundtrack already plays on its own sound zones. The integration tells those zones what to do. It does not pull a stream into another player.
+The music stays on the Soundtrack zone. Home Assistant is the remote.
+
+Home Assistant 2026.4 or newer is required.
 
 ## Install
 
-Copy `custom_components/soundtrack` into your Home Assistant config directory, so you have:
+In HACS, add this repository as a custom integration, install Soundtrack, and restart Home Assistant.
+
+To install by hand, copy `custom_components/soundtrack` into your config directory:
 
 ```text
 config/custom_components/soundtrack/manifest.json
 ```
 
-Restart Home Assistant, then go to **Settings → Devices & services → Add integration → Soundtrack**.
-
-Home Assistant 2026.4 or newer is required. The integration is also laid out for HACS (`hacs.json`).
+Restart, then open **Settings → Devices & services → Add integration → Soundtrack**.
 
 ## Sign in
 
-Soundtrack does not offer an OAuth consent screen for this API. The integration signs in with the email and password for the Soundtrack user that should control the zones.
+Use the email and password for the Soundtrack account that should control the zones. The password is only used to sign in. Home Assistant keeps the session and renews it in the background.
 
-The password is used once and is not stored. Soundtrack returns an access token and a refresh token. Home Assistant keeps those in the config entry and exchanges the refresh token for a new access token before it expires, and again if a request comes back unauthorized. That session lasts until Soundtrack rejects the refresh token.
+When Soundtrack ends that session, Home Assistant asks you to enter the password again. The sign-in screen says which email it is reconnecting.
 
-When that happens, Home Assistant raises a repair and asks for the password again. It does not keep retrying a stored password. A failed refresh is a sign-out, not a blip to hammer through.
+## What you can do
 
-## What you get
-
-One media player per sound zone, named from the location and the zone.
+You get one media player per sound zone, named from the location and the zone.
 
 | Control | What it does |
 | --- | --- |
 | Play / pause | Resume or pause that zone |
 | Next track | Skip to the next song |
-| Volume | Slider mapped onto Soundtrack's 0–16 steps |
-| Source | Saved playlists for that zone's account. Picking one starts it |
-| Media browser | **Favorites** are the account music library. **Discover** is Soundtrack's browse categories |
+| Volume | A slider over Soundtrack's volume steps |
+| Source | Playlists saved on the account. Choosing one starts it on that zone |
+| Media browser | **Favorites** are the saved library. **Discover** is Soundtrack's browse categories |
 
-The player shows the track title, artists, album, artwork, and the position Soundtrack last reported, including while paused. Home Assistant keeps that position moving while the zone is playing. Changes you make refresh immediately and again a few seconds later, once the zone has caught up. Changes made in the Soundtrack app show up on the next poll, about every 15 seconds.
+The player shows the title, artists, album, artwork, and how far through the song you are, including while it is paused. The progress keeps moving while the zone is playing.
 
-The media browser search box queries Soundtrack's playlist catalog. Favorites are the playlists saved on the account. Discover lists browse categories; opening one loads that category's editorial playlists.
+A change you make in Home Assistant shows up immediately. A change made in the Soundtrack app shows up within about 15 seconds.
 
-### Play a playlist on one speaker
+Search in the media browser looks through Soundtrack's playlist catalog. Open a category under Discover to see the playlists in it.
 
-From the media browser, open the zone and choose a playlist.
+### Start a playlist
 
-Or call the service and target the zone:
+In the media browser, open the zone and pick a playlist. You can also pick one from the source list on the player.
+
+In an automation or script, target the zone:
 
 ```yaml
 action: soundtrack.play_playlist
@@ -54,11 +56,13 @@ data:
   playlist_id: "UGxheWxpc3Q6..."
 ```
 
-`media_player.play_media` does the same thing. Use `media_content_type: playlist` and the playlist id as `media_content_id`.
+`media_player.play_media` does the same thing. Set the content type to `playlist` and use the playlist id as the content id.
 
-### Favorite a playlist
+The playlist id is the one shown when you browse, or the id from the Soundtrack app.
 
-Favoriting adds the playlist to that zone's Soundtrack account library. It then appears under Favorites and in the source list.
+### Save a playlist
+
+Saving a playlist puts it in that zone's Soundtrack library. It then shows up under Favorites and in the source list.
 
 ```yaml
 action: soundtrack.favorite_playlist
@@ -68,31 +72,14 @@ data:
   playlist_id: "UGxheWxpc3Q6..."
 ```
 
-`soundtrack.unfavorite_playlist` removes it. The playlist id is the id shown when you browse, or the id from the Soundtrack app.
+`soundtrack.unfavorite_playlist` takes it back out.
 
-Pause, skip, and volume also work as the normal media player actions (`media_player.media_pause`, `media_player.media_next_track`, `media_player.volume_set`).
+Pause, skip, and volume also work as the usual media player actions.
 
 ## Limits
 
-- Fast-forward is skip. Soundtrack's API has no seek inside a track.
-- Volume has 17 steps (0 through 16), not a smooth percentage. The raw step is on the `soundtrack_volume` attribute.
-- A zone with no paired device is off. A paired zone that is offline is unavailable.
-- Accounts, locations, and zones are loaded 100 at a time. Saved playlists follow further pages, up to 400. The log says when something was cut off.
-- Soundtrack's own API terms do not allow a visitor-facing jukebox. This integration is for the people who already control the account.
-
-## Development
-
-Home Assistant 2026.4 and newer needs Python 3.14.2 or newer. Tests use Home Assistant's own helpers via `pytest-homeassistant-custom-component`.
-
-```bash
-uv venv --python 3.14 .venv
-uv pip install -r requirements-dev.txt
-.venv/bin/ruff check .
-.venv/bin/ruff format --check .
-.venv/bin/pytest
-.venv/bin/pre-commit install
-```
-
-`pytest` covers the GraphQL client and, in Home Assistant itself, the config flow, reauth, zone setup, playback, favorites, browse, and search. Ruff and pytest also run on pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-`dev/mock_soundtrack.py` is the GraphQL stand-in those tests talk to. Point a Home Assistant at it with `SOUNDTRACK_API_URL=http://127.0.0.1:43124/` and run `.venv/bin/python dev/mock_soundtrack.py`. Sign in as `ada@example.com` with password `soundtrack`. That account has one sound zone, Front Bar, playing Nightshift. Leave `SOUNDTRACK_API_URL` unset and the integration uses `https://api.soundtrackyourbrand.com/v2`.
+- Next track skips the song. Soundtrack cannot jump to a time inside a track.
+- Volume moves in 17 steps, from 0 through 16. The current step is the `soundtrack_volume` attribute.
+- A zone with nothing paired to it is off. A paired zone that cannot be reached is unavailable.
+- Saved playlists load up to 400. If the library is larger than that, the rest is left out and Home Assistant notes it in the log.
+- Soundtrack's terms cover the people who already run the account. This integration follows that: it controls your zones, and it is not a public jukebox.

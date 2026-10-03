@@ -12,7 +12,7 @@ uv pip install -r requirements-dev.txt
 .venv/bin/pre-commit install
 ```
 
-The local player UI is described in the Development section of [README.md](README.md).
+`dev/mock_soundtrack.py` is a local Soundtrack API for the tests. Run it with `python dev/mock_soundtrack.py` and point Home Assistant at it with `SOUNDTRACK_API_URL=http://127.0.0.1:43124/`. Sign in as `ada@example.com` with password `soundtrack`.
 
 ## Checks
 

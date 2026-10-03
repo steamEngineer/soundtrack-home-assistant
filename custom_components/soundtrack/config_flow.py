@@ -60,6 +60,7 @@ class SoundtrackConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a Soundtrack config flow."""
 
     VERSION = 1
+    MINOR_VERSION = 2
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None):
         """Ask for the Soundtrack email and password."""

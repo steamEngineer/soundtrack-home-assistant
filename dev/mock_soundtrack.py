@@ -38,6 +38,7 @@ class SoundtrackMock:
         self.track_artist = "Commodores"
         self.library = ["playlist-morning", "playlist-evening"]
         self.reject_refresh = False
+        self.hide_zone = False
         self.signed_in = (USER_ID, "Ada", "ada@example.com")
         self.url = ""
         self._runner: web.AppRunner | None = None
@@ -229,7 +230,7 @@ class SoundtrackMock:
                             {
                                 "id": "location-front",
                                 "name": "Front",
-                                "soundZones": _edges([self._zone()]),
+                                "soundZones": _edges([] if self.hide_zone else [self._zone()]),
                             }
                         ]
                     ),

@@ -181,11 +181,81 @@ async def test_rejected_refresh_starts_reauth(hass, mock_api) -> None:
     assert any(flow["context"]["source"] == SOURCE_REAUTH for flow in flows)
 
 
-async def test_unload(hass, mock_api) -> None:
+def _soundtrack_devices(hass, entry_id: str):
+    return dr.async_entries_for_config_entry(dr.async_get(hass), entry_id)
+
+
+async def test_unload_reload_and_upgrade_keep_the_same_entity(hass, mock_api) -> None:
     entry, entity_id = await _async_setup(hass, mock_api)
+    assert entry.minor_version == 2
+    assert entry.data[CONF_ACCESS_TOKEN] == "access-1"
+
+    registry = er.async_get(hass)
+    registry.async_update_entity(entity_id, new_entity_id="media_player.front_bar")
+    await hass.async_block_till_done()
+    entity_id = "media_player.front_bar"
+    device_id = registry.async_get(entity_id).device_id
+    assert len(_soundtrack_devices(hass, entry.entry_id)) == 2
+
+    await hass.services.async_call(
+        DOMAIN,
+        "play_playlist",
+        {ATTR_ENTITY_ID: entity_id, "playlist_id": "playlist-jazz"},
+        blocking=True,
+    )
+    assert hass.states.get(entity_id).attributes["source"] == "Jazz After Dark"
+
+    coordinator = entry.runtime_data
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.NOT_LOADED
     assert hass.data["media_player"].get_entity(entity_id) is None
-    # The registry entry stays, so the state machine keeps an unavailable placeholder.
+    # The registry row stays, so a reload can claim the same entity id.
     assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
+    assert registry.async_get(entity_id).unique_id == ZONE_ID
+    assert coordinator._shutdown_requested is True
+    assert len(_soundtrack_devices(hass, entry.entry_id)) == 2
+
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    assert hass.states.get(entity_id).state == MediaPlayerState.PLAYING
+    assert hass.states.get(entity_id).attributes["source"] == "Jazz After Dark"
+    assert registry.async_get(entity_id).device_id == device_id
+    assert len(er.async_entries_for_config_entry(registry, entry.entry_id)) == 1
+    assert len(_soundtrack_devices(hass, entry.entry_id)) == 2
+
+    await hass.services.async_call(
+        "media_player",
+        "media_pause",
+        {ATTR_ENTITY_ID: entity_id},
+        blocking=True,
+    )
+    assert hass.states.get(entity_id).state == MediaPlayerState.PAUSED
+
+    # An entry saved by version 1.1 is migrated on the next setup.
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    hass.config_entries.async_update_entry(entry, minor_version=1)
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.minor_version == 2
+    assert entry.data[CONF_EMAIL] == "ada@example.com"
+    assert entry.data[CONF_ACCESS_TOKEN] == "access-1"
+    assert hass.states.get(entity_id).state == MediaPlayerState.PAUSED
+    assert registry.async_get(entity_id).unique_id == ZONE_ID
+    assert len(er.async_entries_for_config_entry(registry, entry.entry_id)) == 1
+
+    mock_api.hide_zone = True
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
+    assert registry.async_get(entity_id).unique_id == ZONE_ID
+    assert len(er.async_entries_for_config_entry(registry, entry.entry_id)) == 1
+
+    mock_api.hide_zone = False
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id).state == MediaPlayerState.PAUSED
+    assert hass.states.get(entity_id).attributes["source"] == "Jazz After Dark"
+    assert registry.async_get(entity_id).device_id == device_id
+    assert len(_soundtrack_devices(hass, entry.entry_id)) == 2

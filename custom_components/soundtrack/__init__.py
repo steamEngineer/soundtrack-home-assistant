@@ -76,3 +76,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: SoundtrackConfigEntry) -
 async def async_unload_entry(hass: HomeAssistant, entry: SoundtrackConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, _PLATFORMS)
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: SoundtrackConfigEntry) -> bool:
+    """Keep a stored Soundtrack entry working after an integration update.
+
+    1.1 is the first release and already stores the session fields 1.2 reads.
+    The minor bump is what makes Home Assistant run this on upgrade instead of
+    refusing the entry when a later change needs a real migration.
+    """
+    if entry.version != 1:
+        return False
+    hass.config_entries.async_update_entry(entry, minor_version=2)
+    return True

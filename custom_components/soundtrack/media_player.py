@@ -19,7 +19,7 @@ from homeassistant.components.media_player import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers import config_validation as cv, entity_platform
+from homeassistant.helpers import config_validation as cv, device_registry as dr, entity_platform
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -146,8 +146,13 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
             model="Sound zone",
             suggested_area=location,
         )
-        if self.coordinator.config_entry is not None:
-            info["via_device"] = (DOMAIN, self.coordinator.config_entry.entry_id)
+        entry = self.coordinator.config_entry
+        if entry is not None:
+            hub = dr.async_get(self.hass).async_get_device_by_identifier(
+                (DOMAIN, entry.entry_id), entry.entry_id
+            )
+            if hub is not None:
+                info["via_device_id"] = hub.id
         return info
 
     @property

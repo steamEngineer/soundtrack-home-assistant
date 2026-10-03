@@ -1,0 +1,7 @@
+{
+  "services": {
+    "play_playlist": {"service": "mdi:playlist-play"},
+    "favorite_playlist": {"service": "mdi:heart-plus-outline"},
+    "unfavorite_playlist": {"service": "mdi:heart-off-outline"}
+  }
+}

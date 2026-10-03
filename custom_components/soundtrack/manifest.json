@@ -1,0 +1,11 @@
+{
+  "domain": "soundtrack",
+  "name": "Soundtrack",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://www.soundtrackyourbrand.com/",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "requirements": [],
+  "version": "1.0.0"
+}

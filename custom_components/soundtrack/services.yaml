@@ -1,0 +1,35 @@
+play_playlist:
+  target:
+    entity:
+      integration: soundtrack
+      domain: media_player
+  fields:
+    playlist_id:
+      required: true
+      example: "UGxheWxpc3Q6..."
+      selector:
+        text:
+
+favorite_playlist:
+  target:
+    entity:
+      integration: soundtrack
+      domain: media_player
+  fields:
+    playlist_id:
+      required: true
+      example: "UGxheWxpc3Q6..."
+      selector:
+        text:
+
+unfavorite_playlist:
+  target:
+    entity:
+      integration: soundtrack
+      domain: media_player
+  fields:
+    playlist_id:
+      required: true
+      example: "UGxheWxpc3Q6..."
+      selector:
+        text:

@@ -8,6 +8,37 @@ Home Assistant 2026.4 or newer is required.
 
 > **Early alpha.** This integration is still changing. A major update is very likely to mean removing it and adding it again, then signing in and setting up your zones from scratch.
 
+## What it looks like
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/integration.png" alt="Soundtrack in Devices and services">
+      <br>The Soundtrack integration, with the account and its sound zone
+    </td>
+    <td width="50%">
+      <img src="docs/images/zone.png" alt="A Soundtrack sound zone">
+      <br>The zone, and the track playing on it
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="docs/images/player.png" alt="Now playing on a Soundtrack zone" width="320">
+      <br>Artwork, progress, pause, skip, and volume
+    </td>
+    <td>
+      <img src="docs/images/favorites.png" alt="Favorite Soundtrack playlists">
+      <br>Playlists saved on the account
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <img src="docs/images/search.png" alt="Searching the Soundtrack catalog" width="520">
+      <br>Search the Soundtrack catalog
+    </td>
+  </tr>
+</table>
+
 ## Install
 
 In HACS, add this repository as a custom integration, install Soundtrack, and restart Home Assistant.

@@ -6,6 +6,8 @@ The music stays on the Soundtrack zone. Home Assistant is the remote.
 
 Home Assistant 2026.4 or newer is required.
 
+> **Early alpha.** This integration is still changing. A major update is very likely to mean removing it and adding it again, then signing in and setting up your zones from scratch.
+
 ## Install
 
 In HACS, add this repository as a custom integration, install Soundtrack, and restart Home Assistant.
@@ -82,4 +84,4 @@ Pause, skip, and volume also work as the usual media player actions.
 - Volume moves in 17 steps, from 0 through 16. The current step is the `soundtrack_volume` attribute.
 - A zone with nothing paired to it is off. A paired zone that cannot be reached is unavailable.
 - Saved playlists load up to 400. If the library is larger than that, the rest is left out and Home Assistant notes it in the log.
-- Soundtrack's terms cover the people who already run the account. This integration follows that: it controls your zones, and it is not a public jukebox.
+- Soundtrack's terms cover the people who already run the account. This integration is for that same use: controlling your own zones.

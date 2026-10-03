@@ -29,7 +29,9 @@ Pytest covers the GraphQL client and, inside Home Assistant, the config flow, re
 
 ## Pull requests
 
-Open pull requests against `main`. Describe what changed and why. Leave passwords, tokens, and anything from `config/.storage` out of the diff, the description, and the logs.
+`main` is protected. Open a pull request against it. Direct pushes, force-pushes, and deletion of `main` are rejected. The branch must be up to date, and `ruff and pytest`, `hassfest`, and `HACS` must pass. Resolve review threads before merging. An approving review is not required, and history on `main` stays linear.
+
+Describe what changed and why. Leave passwords, tokens, and anything from `config/.storage` out of the diff, the description, and the logs.
 
 ## Dependency updates
 

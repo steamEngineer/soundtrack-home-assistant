@@ -41,6 +41,14 @@ uv pip install -r requirements-dev.txt
 - Ruff's target is Python 3.14, so it formats `except (TypeError, ValueError)` to `except TypeError, ValueError` (PEP 758). Leave that form in place.
 - Do not commit `config/.storage`, and do not print tokens from it.
 
-## Pull requests
+## Branches
 
-Target `main`. Run Ruff and pytest before pushing. Do not open or comment on GitHub issues or pull requests unless a person asked.
+`main` is protected.
+
+- Land work through a pull request. Do not push commits straight to `main`.
+- Do not force-push `main`, and do not delete it.
+- The pull request branch must be up to date with `main`.
+- These checks must pass before merge: `ruff and pytest`, `hassfest`, and `HACS`.
+- Resolve review threads before merging. An approving review is not required.
+- History on `main` stays linear.
+- Do not open or comment on GitHub issues or pull requests unless a person asked. When they ask for a change, the pull request is how that change reaches `main`.

@@ -19,7 +19,7 @@ body:
     attributes:
       label: Integration version
       description: From the Soundtrack device page, or the `version` in `manifest.json`.
-      placeholder: 1.0.0
+      placeholder: 0.0.1
     validations:
       required: true
   - type: textarea

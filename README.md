@@ -97,9 +97,12 @@ uv pip install home-assistant-frontend==20260826.7
 To click through the UI, run the local Soundtrack stand-in and a Home Assistant pointed at it. `SOUNDTRACK_API_URL` is optional. Leave it unset and the integration uses `https://api.soundtrackyourbrand.com/v2`.
 
 ```bash
-mkdir -p config/custom_components
+mkdir -p config/custom_components config/.storage
 ln -sfn "$PWD/custom_components/soundtrack" config/custom_components/soundtrack
 cp dev/configuration.yaml config/configuration.yaml
+# Home Assistant 2026 treats an http: port in YAML as a five-minute trial,
+# then restarts on 8123. Seed the stable port before the first boot.
+cp dev/http.storage.json config/.storage/http
 SOUNDTRACK_API_URL=http://127.0.0.1:43124/ .venv/bin/python dev/mock_soundtrack.py
 ```
 
@@ -107,6 +110,13 @@ In a second shell:
 
 ```bash
 SOUNDTRACK_API_URL=http://127.0.0.1:43124/ .venv/bin/python -m homeassistant --config config
+```
+
+Assist is a built-in platform, so this Home Assistant also needs `pymicro-vad` and `pyspeex-noise`. On this image `c++` is clang and it looks for the GCC 14 headers:
+
+```bash
+sudo apt-get install -y g++ libstdc++-14-dev
+uv pip install pymicro-vad==1.0.1 pyspeex-noise==1.0.2
 ```
 
 Open http://127.0.0.1:43123. On the stand-in, sign in as `ada@example.com` with password `soundtrack`. That account has one sound zone, Front Bar, playing Nightshift. The password is only valid for the stand-in.

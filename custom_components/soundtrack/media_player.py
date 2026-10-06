@@ -307,7 +307,18 @@ class SoundtrackZone(CoordinatorEntity[SoundtrackCoordinator], MediaPlayerEntity
         await self.async_play_playlist(playlist_id)
 
     async def async_play_media(self, media_type: MediaType | str, media_id: str, **kwargs) -> None:
-        """Play a playlist chosen in the media browser."""
+        """Play a playlist, or start a single track on this zone.
+
+        ponytail: a track is play-now only. ``immediate: false`` stays unused
+        because it is invisible while paused and inserts at upcoming[0] while
+        playing. Upgrade path: enqueue once that matches Home Assistant.
+        """
+        if media_type in {MediaType.TRACK, "track"}:
+            track_id = media_id.strip()
+            if not track_id:
+                raise HomeAssistantError("Choose a track to play.")
+            await self._run(self.coordinator.client.async_play_track(self._zone_id, track_id))
+            return
         if media_type not in {MediaType.PLAYLIST, MediaType.MUSIC, "playlist"}:
             raise HomeAssistantError(f"Soundtrack cannot play {media_type}.")
         playlist_id = media_id.removeprefix("playlist:")

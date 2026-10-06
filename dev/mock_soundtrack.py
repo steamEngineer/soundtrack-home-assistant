@@ -39,6 +39,7 @@ class SoundtrackMock:
         self.library = ["playlist-morning", "playlist-evening"]
         self.reject_refresh = False
         self.hide_zone = False
+        self.queued_track: str | None = None
         self.signed_in = (USER_ID, "Ada", "ada@example.com")
         self.url = ""
         self._runner: web.AppRunner | None = None
@@ -99,6 +100,13 @@ class SoundtrackMock:
             return web.json_response(
                 {"data": {"removeFromMusicLibrary": {"musicLibrary": {"id": ACCOUNT_ID}}}}
             )
+        if "soundZoneQueueTracks" in query:
+            track_id = str(variables.get("track") or "")
+            self.queued_track = track_id or None
+            if track_id:
+                self.track_title = "Marimba" if track_id.endswith("marimba") else track_id
+                self.state = "playing"
+            return web.json_response({"data": {"soundZoneQueueTracks": {"status": "ok"}}})
         if "soundZoneAssignSource" in query:
             self.source_id = variables.get("source") or self.source_id
             return web.json_response({"data": {"soundZoneAssignSource": {"soundZones": [ZONE_ID]}}})

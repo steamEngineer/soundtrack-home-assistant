@@ -590,6 +590,41 @@ async def test_play_playlist_retries_a_rejected_start(graphql, session) -> None:
     assert "soundZoneAssignSource" in graphql["requests"][0]["query"]
 
 
+async def test_play_track_queues_immediately_without_play(graphql, session) -> None:
+    async def respond(body, request):
+        return web.json_response({"data": {"soundZoneQueueTracks": {"status": "ok"}}})
+
+    graphql["respond"] = respond
+    client = _client(session, graphql)
+    await client.async_play_track("zone-1", "soundtrack:track:marimba")
+    assert len(graphql["requests"]) == 1
+    assert "soundZoneQueueTracks" in graphql["requests"][0]["query"]
+    assert "immediate: true" in graphql["requests"][0]["query"]
+    assert graphql["requests"][0]["variables"] == {
+        "soundZone": "zone-1",
+        "track": "soundtrack:track:marimba",
+    }
+    assert all("play(" not in item["query"] for item in graphql["requests"])
+
+
+async def test_play_track_retries_a_rejected_queue_once(graphql, session) -> None:
+    calls = 0
+
+    async def respond(body, request):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return web.json_response({"errors": [{"message": "Sound zone is not ready"}]})
+        return web.json_response({"data": {"soundZoneQueueTracks": {"status": "ok"}}})
+
+    graphql["respond"] = respond
+    client = _client(session, graphql)
+    await client.async_play_track("zone-1", "soundtrack:track:marimba")
+    assert calls == 2
+    assert all("soundZoneQueueTracks" in item["query"] for item in graphql["requests"])
+    assert all("play(" not in item["query"] for item in graphql["requests"])
+
+
 async def test_play_playlist_assigns_then_starts(graphql, session) -> None:
     async def respond(body, request):
         return web.json_response({"data": {"ok": True}})

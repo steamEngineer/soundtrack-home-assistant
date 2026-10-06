@@ -697,6 +697,14 @@ mutation Assign($soundZone: ID!, $source: ID!) {
 }
 """
 
+_QUEUE_TRACK_MUTATION = """
+mutation QueueTrack($soundZone: ID!, $track: ID!) {
+  soundZoneQueueTracks(input: { soundZone: $soundZone, tracks: [$track], immediate: true }) {
+    status
+  }
+}
+"""
+
 _FAVORITE_MUTATION = """
 mutation Favorite($parent: ID!, $source: ID!) {
   addToMusicLibrary(input: {parent: $parent, source: $source}) {
@@ -949,6 +957,15 @@ class SoundtrackClient:
             lambda: self.execute(_ASSIGN_MUTATION, {"soundZone": zone_id, "source": playlist_id})
         )
         await self._once_more(lambda: self.execute(_PLAY_MUTATION, {"soundZone": zone_id}))
+
+    async def async_play_track(self, zone_id: str, track_id: str) -> None:
+        """Start one track. The queue call starts playback, so this does not send play."""
+        await self._once_more(
+            lambda: self.execute(
+                _QUEUE_TRACK_MUTATION,
+                {"soundZone": zone_id, "track": track_id},
+            )
+        )
 
     async def _once_more(self, call) -> dict[str, Any]:
         try:

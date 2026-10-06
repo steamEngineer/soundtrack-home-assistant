@@ -10,6 +10,7 @@ from homeassistant.components.diagnostics import REDACTED
 from homeassistant.components.media_player import MediaClass, MediaPlayerState, SearchMediaQuery
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, STATE_UNAVAILABLE
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from tests.conftest import soundtrack_entry
@@ -93,6 +94,51 @@ async def test_pause_volume_skip_and_playlist(hass, mock_api) -> None:
     )
     assert hass.states.get(entity_id).attributes["source"] == "Jazz After Dark"
     assert hass.states.get(entity_id).state == MediaPlayerState.PLAYING
+
+
+async def test_play_media_starts_a_track_and_still_plays_a_playlist(hass, mock_api) -> None:
+    _entry, entity_id = await _async_setup(hass, mock_api)
+
+    await hass.services.async_call(
+        "media_player",
+        "play_media",
+        {
+            ATTR_ENTITY_ID: entity_id,
+            "media_content_type": "playlist",
+            "media_content_id": "playlist-jazz",
+        },
+        blocking=True,
+    )
+    assert hass.states.get(entity_id).attributes["source"] == "Jazz After Dark"
+    assert mock_api.queued_track is None
+
+    await hass.services.async_call(
+        "media_player",
+        "play_media",
+        {
+            ATTR_ENTITY_ID: entity_id,
+            "media_content_type": "track",
+            "media_content_id": "soundtrack:track:marimba",
+        },
+        blocking=True,
+    )
+    state = hass.states.get(entity_id)
+    assert state.state == MediaPlayerState.PLAYING
+    assert state.attributes["media_title"] == "Marimba"
+    assert state.attributes["source"] == "Jazz After Dark"
+    assert mock_api.queued_track == "soundtrack:track:marimba"
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            "media_player",
+            "play_media",
+            {
+                ATTR_ENTITY_ID: entity_id,
+                "media_content_type": "album",
+                "media_content_id": "album-1",
+            },
+            blocking=True,
+        )
 
 
 async def test_favorite_shows_up_as_a_source(hass, mock_api) -> None:

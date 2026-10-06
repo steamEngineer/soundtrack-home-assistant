@@ -290,6 +290,65 @@ def test_parse_snapshot_prefers_measured_progress_and_the_newer_track() -> None:
     assert track.progress_at == datetime(2026, 10, 3, 3, 2, 12, tzinfo=UTC)
 
 
+def test_parse_snapshot_keeps_now_playing_when_current_is_only_slightly_newer() -> None:
+    snapshot = parse_snapshot(
+        {
+            "me": {
+                "__typename": "User",
+                "accounts": {
+                    "edges": [
+                        {
+                            "node": {
+                                "id": "acc",
+                                "businessName": "Ada's Cafe",
+                                "locations": {
+                                    "edges": [
+                                        {
+                                            "node": {
+                                                "id": "loc",
+                                                "name": "Front",
+                                                "soundZones": {
+                                                    "edges": [
+                                                        {
+                                                            "node": {
+                                                                "id": "zone",
+                                                                "name": "Bar",
+                                                                "online": True,
+                                                                "isPaired": True,
+                                                                "playback": {
+                                                                    "state": "playing",
+                                                                    "current": {
+                                                                        "start": "2026-10-06T05:17:35.290Z",
+                                                                        "playable": {
+                                                                            "__typename": "Track",
+                                                                            "title": "Moving Men",
+                                                                        },
+                                                                    },
+                                                                },
+                                                                "nowPlaying": {
+                                                                    "startedAt": "2026-10-06T05:17:35Z",
+                                                                    "track": {"title": "Marimba"},
+                                                                },
+                                                            }
+                                                        }
+                                                    ]
+                                                },
+                                            }
+                                        }
+                                    ]
+                                },
+                            }
+                        }
+                    ]
+                },
+            }
+        }
+    )
+    track = snapshot.zones["zone"].track
+    assert track is not None
+    assert track.title == "Marimba"
+
+
 def test_parse_snapshot_rejects_api_client_session() -> None:
     with pytest.raises(SoundtrackApiError):
         parse_snapshot({"me": {"__typename": "PublicAPIClient"}})

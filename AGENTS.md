@@ -28,7 +28,7 @@ uv pip install -r requirements-dev.txt
 - Do not log access tokens, refresh tokens, or passwords.
 - The production API is `https://api.soundtrackyourbrand.com/v2`. `SOUNDTRACK_API_URL` overrides it for the lab and is read at call time through `api_url()`. Leave it unset when the lab should hit production.
 - One `asyncio.Lock` serializes GraphQL so two refreshes cannot rotate the same token.
-- Track position comes from `playback.progress`, including while paused. Home Assistant extrapolates that position while the zone is playing. If `playback.current` is newer than `nowPlaying`, the newer track wins.
+- Track position comes from `playback.progress`, including while paused. Home Assistant extrapolates that position while the zone is playing. If `playback.current` starts at least a second after `nowPlaying`, the newer track wins. A smaller gap is millisecond precision on `playback.current` while `nowPlaying` is the track that is actually playing.
 - Discover children come from `editorialBrowse(id: "soundtrack:browse:<slug>")`. `browseCategory.playlists` is empty on the live API.
 - Album art is a 960px square from `size(width: 960, height: 960)`. Substitute `%w` and `%h` in CDN URLs before requesting them. The hero image is a wide banner, not album art.
 - Volume is an integer from 0 to 16. Home Assistant's 0–1 slider maps onto those steps.

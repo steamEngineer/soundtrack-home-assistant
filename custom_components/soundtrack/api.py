@@ -284,13 +284,21 @@ def _progress(playback: dict[str, Any]) -> tuple[float | None, datetime | None]:
 
 
 def _newer_track(current: Track | None, candidate: Track | None) -> Track | None:
+    """Prefer playback.current when it starts a later song.
+
+    nowPlaying.startedAt is whole seconds. playback.current.start has
+    milliseconds, so play-now leaves current a fraction of a second ahead
+    while the speaker is still on the queued track.
+    """
     if current is None:
         return candidate
     if candidate is None or candidate.started_at is None:
         return current
-    if current.started_at is None or candidate.started_at > current.started_at:
+    if current.started_at is None:
         return candidate
-    return current
+    if candidate.started_at - current.started_at < timedelta(seconds=1):
+        return current
+    return candidate
 
 
 def _track(now_playing: dict[str, Any] | None) -> Track | None:

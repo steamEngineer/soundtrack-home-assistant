@@ -15,8 +15,10 @@
       "description": "Group routine Python updates.",
       "matchManagers": ["pip_requirements"],
       "matchUpdateTypes": ["minor", "patch"],
-      "excludePackageNames": ["ruff"],
-      "groupName": "python dependencies"
+      "groupName": "python dependencies",
+      "matchPackageNames": [
+        "!ruff"
+      ]
     },
     {
       "description": "Group routine GitHub Actions updates.",
@@ -28,8 +30,10 @@
       "description": "Group routine pre-commit hook updates.",
       "matchManagers": ["pre-commit"],
       "matchUpdateTypes": ["minor", "patch"],
-      "excludePackageNames": ["astral-sh/ruff-pre-commit"],
-      "groupName": "pre-commit hooks"
+      "groupName": "pre-commit hooks",
+      "matchPackageNames": [
+        "!astral-sh/ruff-pre-commit"
+      ]
     }
   ]
 }
